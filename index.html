@@ -3,18 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#111827" />
+  <meta name="theme-color" content="#0b1020" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="PJCS Sim" />
-  <title>PJCS Pokémon GO Simulator</title>
+  <title>PJCS Pokémon GO Simulator v0.2</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="app-header">
     <div>
-      <p class="eyebrow">Pokémon GO / PJCS TRAINING</p>
+      <p class="eyebrow">POKÉMON GO / AUTO BATTLE BETA</p>
       <h1>PJCS Simulator</h1>
     </div>
     <button id="resetAll" class="ghost-button" type="button">初期化</button>
@@ -24,187 +24,67 @@
     <nav class="tabs" aria-label="画面切替">
       <button class="tab is-active" data-tab="roster" type="button">6体登録</button>
       <button class="tab" data-tab="selection" type="button">3体選出</button>
+      <button class="tab" data-tab="battle" type="button">自動対戦</button>
       <button class="tab" data-tab="match" type="button">BO進行</button>
-      <button class="tab" data-tab="data" type="button">データ</button>
     </nav>
 
-    <section id="roster" class="panel is-active" aria-labelledby="roster-title">
+    <section id="roster" class="panel is-active">
       <div class="section-heading">
-        <div>
-          <p class="step">STEP 1</p>
-          <h2 id="roster-title">両者の6体を登録</h2>
-        </div>
-        <span class="status-chip">保存は端末内</span>
+        <div><p class="step">STEP 1</p><h2>両者の6体を登録</h2></div>
+        <span class="status-chip">12種の検証済みプリセット</span>
       </div>
-
+      <p class="lead">この版では、最新SL練習用に登録した12種のランク1相当ステータスと推奨技を使用します。</p>
       <div class="two-column">
-        <section class="team-card">
-          <div class="team-card-header">
-            <h3>あなた</h3>
-            <span id="playerReady" class="mini-status">0 / 6</span>
-          </div>
-          <div id="playerRoster" class="roster-grid"></div>
-        </section>
-
-        <section class="team-card">
-          <div class="team-card-header">
-            <h3>相手</h3>
-            <span id="opponentReady" class="mini-status">0 / 6</span>
-          </div>
-          <div id="opponentRoster" class="roster-grid"></div>
-        </section>
+        <section class="team-card"><div class="team-card-header"><h3>あなた</h3><span id="playerReady" class="mini-status">6 / 6</span></div><div id="playerRoster" class="roster-grid"></div></section>
+        <section class="team-card"><div class="team-card-header"><h3>相手</h3><span id="opponentReady" class="mini-status">6 / 6</span></div><div id="opponentRoster" class="roster-grid"></div></section>
       </div>
-
       <button id="saveRosters" class="primary-button full" type="button">6体を保存して選出へ</button>
       <p id="rosterMessage" class="message" aria-live="polite"></p>
     </section>
 
-    <section id="selection" class="panel" aria-labelledby="selection-title">
+    <section id="selection" class="panel">
       <div class="section-heading">
-        <div>
-          <p class="step">STEP 2</p>
-          <h2 id="selection-title">6体から3体を選出</h2>
-        </div>
-        <div class="timer-box" aria-label="選出タイマー">
-          <span>残り</span>
-          <strong id="timer">90</strong>
-          <span>秒</span>
-        </div>
+        <div><p class="step">STEP 2</p><h2>6体から3体を選出</h2></div>
+        <div class="timer-box"><span>残り</span><strong id="timer">90</strong><span>秒</span></div>
       </div>
-
       <div class="selection-summary">
-        <div>
-          <span class="muted">あなたの選出</span>
-          <strong id="playerSelectionSummary">未選択</strong>
-        </div>
-        <div>
-          <span class="muted">相手の選出</span>
-          <strong id="opponentSelectionSummary">未選択</strong>
-        </div>
+        <div><span class="muted">あなた</span><strong id="playerSelectionSummary">未選択</strong></div>
+        <div><span class="muted">相手</span><strong id="opponentSelectionSummary">未選択</strong></div>
       </div>
-
       <div class="two-column">
-        <section class="team-card">
-          <div class="team-card-header">
-            <h3>あなた</h3>
-            <span class="mini-status">タップ順＝先発→控え</span>
-          </div>
-          <div id="playerSelection" class="pick-grid"></div>
-        </section>
-        <section class="team-card">
-          <div class="team-card-header">
-            <h3>相手</h3>
-            <span class="mini-status">練習用に手動設定</span>
-          </div>
-          <div id="opponentSelection" class="pick-grid"></div>
-        </section>
+        <section class="team-card"><div class="team-card-header"><h3>あなた</h3><span class="mini-status">タップ順＝先発→控え</span></div><div id="playerSelection" class="pick-grid"></div></section>
+        <section class="team-card"><div class="team-card-header"><h3>相手</h3><span class="mini-status">相手選出も設定</span></div><div id="opponentSelection" class="pick-grid"></div></section>
       </div>
-
-      <div class="button-row">
-        <button id="startTimer" class="secondary-button" type="button">90秒開始</button>
-        <button id="clearPicks" class="ghost-button" type="button">選出を解除</button>
-        <button id="confirmPicks" class="primary-button" type="button">選出を確定</button>
-      </div>
+      <div class="button-row"><button id="startTimer" class="secondary-button" type="button">90秒開始</button><button id="clearPicks" class="ghost-button" type="button">解除</button><button id="confirmPicks" class="primary-button" type="button">選出を確定</button></div>
       <p id="selectionMessage" class="message" aria-live="polite"></p>
     </section>
 
-    <section id="match" class="panel" aria-labelledby="match-title">
-      <div class="section-heading">
-        <div>
-          <p class="step">STEP 3</p>
-          <h2 id="match-title">BO3 / BO5を進行</h2>
-        </div>
-        <label class="compact-label">
-          形式
-          <select id="matchFormat">
-            <option value="3">BO3</option>
-            <option value="5">BO5</option>
-          </select>
-        </label>
+    <section id="battle" class="panel">
+      <div class="section-heading"><div><p class="step">STEP 3</p><h2>3対3を自動シミュレーション</h2></div><span class="status-chip">1ターン＝0.5秒</span></div>
+      <div class="battle-config card-grid">
+        <label class="compact-control">AIのばらつき<select id="aiStyle"><option value="balanced">標準</option><option value="aggressive">攻撃的</option><option value="conservative">慎重</option></select></label>
+        <label class="compact-control">乱数シード<input id="seedInput" type="number" inputmode="numeric" value="20260719" /></label>
       </div>
-
-      <div class="scoreboard">
-        <div class="score-side">
-          <span>あなた</span>
-          <strong id="playerScore">0</strong>
-        </div>
-        <div class="score-center">
-          <span id="gameNumber">GAME 1</span>
-          <small id="targetWins">2勝先取</small>
-        </div>
-        <div class="score-side">
-          <span>相手</span>
-          <strong id="opponentScore">0</strong>
-        </div>
-      </div>
-
       <section class="current-game">
         <h3>現在の選出</h3>
-        <div class="current-lineup">
-          <div>
-            <span>あなた</span>
-            <div id="currentPlayerLineup" class="lineup-pills"></div>
-          </div>
-          <div>
-            <span>相手</span>
-            <div id="currentOpponentLineup" class="lineup-pills"></div>
-          </div>
-        </div>
+        <div class="current-lineup"><div><span>あなた</span><div id="battlePlayerLineup" class="lineup-pills"></div></div><div><span>相手</span><div id="battleOpponentLineup" class="lineup-pills"></div></div></div>
       </section>
-
-      <div class="winner-buttons">
-        <button id="playerWin" class="win-button" type="button">あなたが勝利</button>
-        <button id="opponentWin" class="loss-button" type="button">相手が勝利</button>
-      </div>
-
-      <div class="button-row">
-        <button id="nextSelection" class="secondary-button" type="button">次ゲームの3体を選ぶ</button>
-        <button id="newMatch" class="ghost-button" type="button">新しいマッチ</button>
-      </div>
-
-      <section class="history-section">
-        <h3>ゲーム履歴</h3>
-        <ol id="historyList" class="history-list"></ol>
-      </section>
-      <p id="matchMessage" class="message" aria-live="polite"></p>
+      <div class="button-row two"><button id="runBattle" class="primary-button" type="button">1試合を自動対戦</button><button id="runBatch" class="secondary-button" type="button">100試合で勝率分析</button></div>
+      <section id="battleResult" class="result-card" aria-live="polite"><p>選出を確定すると自動対戦できます。</p></section>
+      <details class="log-card"><summary>ターンログを見る</summary><ol id="battleLog" class="battle-log"></ol></details>
     </section>
 
-    <section id="data" class="panel" aria-labelledby="data-title">
-      <div class="section-heading">
-        <div>
-          <p class="step">ENGINE READY</p>
-          <h2 id="data-title">対戦データ接続口</h2>
-        </div>
-      </div>
-
-      <div class="info-card">
-        <h3>この第1版で動くもの</h3>
-        <ul>
-          <li>双方の6体・CP登録</li>
-          <li>90秒の3体選出</li>
-          <li>選出順による先発・控え管理</li>
-          <li>BO3 / BO5の勝敗進行</li>
-          <li>端末内への自動保存</li>
-        </ul>
-      </div>
-
-      <div class="info-card warning">
-        <h3>次に接続するもの</h3>
-        <p>CP・個体値・技・ターン・エネルギー・ダメージ・シールド・交代・CMPを処理する高精度バトルエンジンです。現在は勝者を手動入力します。</p>
-      </div>
-
-      <label class="file-label">
-        将来用JSONデータを読み込む
-        <input id="dataFile" type="file" accept="application/json,.json" />
-      </label>
-      <pre id="dataPreview" class="data-preview">データ未読込</pre>
+    <section id="match" class="panel">
+      <div class="section-heading"><div><p class="step">STEP 4</p><h2>BO3 / BO5を自動進行</h2></div><label class="compact-label">形式<select id="matchFormat"><option value="3">BO3</option><option value="5">BO5</option></select></label></div>
+      <div class="scoreboard"><div class="score-side"><span>あなた</span><strong id="playerScore">0</strong></div><div class="score-center"><span id="gameNumber">GAME 1</span><small id="targetWins">2勝先取</small></div><div class="score-side"><span>相手</span><strong id="opponentScore">0</strong></div></div>
+      <section class="current-game"><h3>現在の選出</h3><div class="current-lineup"><div><span>あなた</span><div id="currentPlayerLineup" class="lineup-pills"></div></div><div><span>相手</span><div id="currentOpponentLineup" class="lineup-pills"></div></div></div></section>
+      <div class="button-row"><button id="simulateGame" class="primary-button" type="button">このGameを自動シミュレーション</button><button id="nextSelection" class="secondary-button" type="button">次Gameの3体を選ぶ</button><button id="newMatch" class="ghost-button" type="button">新しいマッチ</button></div>
+      <section class="history-section"><h3>ゲーム履歴</h3><ol id="historyList" class="history-list"></ol></section>
+      <p id="matchMessage" class="message" aria-live="polite"></p>
     </section>
   </main>
 
-  <footer class="app-footer">
-    <span>PJCS training prototype v0.1</span>
-  </footer>
-
+  <footer class="app-footer">PJCS training simulator v0.2 beta / curated GL data</footer>
   <script src="app.js" defer></script>
 </body>
 </html>
