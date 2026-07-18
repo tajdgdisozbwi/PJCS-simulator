@@ -1,1 +1,1 @@
-{"name":"PJCS Pokémon GO Simulator v0.3","short_name":"PJCS Sim","start_url":"./index.html","display":"standalone","background_color":"#0b1020","theme_color":"#0b1020","lang":"ja","description":"Pokémon GOのSL・PJCS向け3対3自動バトルと選出分析PWA"}
+{"name":"PJCS Pokémon GO Simulator v0.4","short_name":"PJCS Sim","start_url":"./index.html?v=4","display":"standalone","background_color":"#0b1020","theme_color":"#0b1020","lang":"ja","description":"320体内蔵・個体値編集対応のPokémon GO SL/PJCS向け3対3自動対戦PWA"}

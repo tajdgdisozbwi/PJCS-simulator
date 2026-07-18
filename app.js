@@ -1,20 +1,17 @@
 "use strict";
 
-const STORAGE_KEY = "pjcs-simulator-v03";
-const OLD_STORAGE_KEY = "pjcs-simulator-v02";
-const DATA_CACHE_KEY = "pjcs-simulator-meta-cache-v03";
-const DATA_CACHE_MAX_AGE = 1000 * 60 * 60 * 24 * 14;
+const STORAGE_KEY = "pjcs-simulator-v04";
+const OLD_STORAGE_KEYS = ["pjcs-simulator-v03","pjcs-simulator-v02"];
 const TURN_MS = 500;
 const SWITCH_COOLDOWN_TURNS = 90;
 const MAX_TURNS = 540;
 const STAB = 1.2;
 const SHADOW_ATTACK = 1.2;
 const SHADOW_DEFENSE = 0.8333333333;
-const POOL_TARGET = 250;
-
-const GM_URL = "https://raw.githubusercontent.com/pvpoke/pvpoke/master/src/data/gamemaster.json";
-const RANK_URL = "https://raw.githubusercontent.com/pvpoke/pvpoke/master/src/data/rankings/all/overall/rankings-1500.json";
-const JP_NAMES_URL = "https://gist.githubusercontent.com/PonDad/53ce0670e7a29ab47271f23b6628dc09/raw/";
+const EMBEDDED = window.PJCS_EMBEDDED_DATA;
+if(!EMBEDDED?.pokemon || Object.keys(EMBEDDED.pokemon).length < 200){
+  throw new Error("内蔵ポケモンデータを読み込めませんでした。");
+}
 
 const STAGE = { "-4":0.5,"-3":0.5714285714,"-2":0.6666666667,"-1":0.8,"0":1,"1":1.25,"2":1.5,"3":1.75,"4":2 };
 
@@ -32,43 +29,31 @@ const TYPE_JP = {
 
 const MOVE_JP = {
   ROLLOUT_FAST:"ころがる",DRAGON_BREATH_FAST:"りゅうのいぶき",METAL_SOUND_FAST:"きんぞくおん",MUD_SHOT_FAST:"マッドショット",FAIRY_WIND_FAST:"ようせいのかぜ",VOLT_SWITCH_FAST:"ボルトチェンジ",EMBER_FAST:"ひのこ",SAND_ATTACK_FAST:"すなかけ",SHADOW_CLAW_FAST:"シャドークロー",POISON_STING_FAST:"どくばり",COUNTER_FAST:"カウンター",WATER_GUN_FAST:"みずでっぽう",WATERFALL_FAST:"たきのぼり",VINE_WHIP_FAST:"つるのムチ",RAZOR_LEAF_FAST:"はっぱカッター",FIRE_SPIN_FAST:"ほのおのうず",INCINERATE_FAST:"やきつくす",POWDER_SNOW_FAST:"こなゆき",ICE_SHARD_FAST:"こおりのつぶて",CHARM_FAST:"あまえる",WING_ATTACK_FAST:"つばさでうつ",AIR_SLASH_FAST:"エアスラッシュ",GUST_FAST:"かぜおこし",CONFUSION_FAST:"ねんりき",PSYCHO_CUT_FAST:"サイコカッター",HEX_FAST:"たたりめ",ASTONISH_FAST:"おどろかす",LICK_FAST:"したでなめる",SNARL_FAST:"バークアウト",BITE_FAST:"かみつく",FEINT_ATTACK_FAST:"だましうち",SPARK_FAST:"スパーク",THUNDER_SHOCK_FAST:"でんきショック",CHARGE_BEAM_FAST:"チャージビーム",BULLET_SEED_FAST:"タネマシンガン",INFESTATION_FAST:"まとわりつく",FURY_CUTTER_FAST:"れんぞくぎり",BUG_BITE_FAST:"むしくい",ROCK_THROW_FAST:"いわおとし",SMACK_DOWN_FAST:"うちおとす",MUD_SLAP_FAST:"どろかけ",DRAGON_TAIL_FAST:"ドラゴンテール",STEEL_WING_FAST:"はがねのつばさ",METAL_CLAW_FAST:"メタルクロー",TACKLE_FAST:"たいあたり",QUICK_ATTACK_FAST:"でんこうせっか",SCRATCH_FAST:"ひっかく",LOW_KICK_FAST:"けたぐり",KARATE_CHOP_FAST:"からてチョップ",DOUBLE_KICK_FAST:"にどげり",POISON_JAB_FAST:"どくづき",ACID_FAST:"ようかいえき",BUBBLE_FAST:"あわ",LOCK_ON_FAST:"ロックオン",PSYWAVE_FAST:"サイコウェーブ",FORCE_PALM_FAST:"はっけい",SUCKER_PUNCH_FAST:"ふいうち",
-  BODY_SLAM:"のしかかり",SHADOW_BALL:"シャドーボール",SKY_ATTACK:"ゴッドバード",FLAMETHROWER:"かえんほうしゃ",HYDRO_CANNON:"ハイドロカノン",DRILL_PECK:"ドリルくちばし",AQUA_TAIL:"アクアテール",MUD_BOMB:"どろばくだん",ENERGY_BALL:"エナジーボール",ACROBATICS:"アクロバット",SAND_TOMB:"すなじごく",ROCK_TOMB:"がんせきふうじ",GIGATON_HAMMER:"デカハンマー",BULLDOZE:"じならし",WEATHER_BALL_FIRE:"ウェザーボール（ほのお）",AIR_CUTTER:"エアカッター",PAYBACK:"しっぺがえし",ICE_BEAM:"れいとうビーム",EARTHQUAKE:"じしん",STONE_EDGE:"ストーンエッジ",FOUL_PLAY:"イカサマ",DRAIN_PUNCH:"ドレインパンチ",SURF:"なみのり",NIGHT_SHADE:"ナイトヘッド",POWER_GEM:"パワージェム",ROCK_SLIDE:"いわなだれ",THUNDERBOLT:"10まんボルト",DISCHARGE:"ほうでん",WILD_CHARGE:"ワイルドボルト",THUNDER_PUNCH:"かみなりパンチ",ICE_PUNCH:"れいとうパンチ",FIRE_PUNCH:"ほのおのパンチ",POWER_UP_PUNCH:"グロウパンチ",CLOSE_COMBAT:"インファイト",CROSS_CHOP:"クロスチョップ",DYNAMIC_PUNCH:"ばくれつパンチ",SUPERPOWER:"ばかぢから",SACRED_SWORD:"せいなるつるぎ",BRICK_BREAK:"かわらわり",LEAF_BLADE:"リーフブレード",SEED_BOMB:"タネばくだん",POWER_WHIP:"パワーウィップ",FRENZY_PLANT:"ハードプラント",SLUDGE_BOMB:"ヘドロばくだん",SLUDGE_WAVE:"ヘドロウェーブ",ACID_SPRAY:"アシッドボム",POISON_FANG:"どくどくのキバ",GUNK_SHOT:"ダストシュート",WEATHER_BALL_WATER:"ウェザーボール（みず）",WEATHER_BALL_ICE:"ウェザーボール（こおり）",WEATHER_BALL_ROCK:"ウェザーボール（いわ）",SCALD:"ねっとう",HYDRO_PUMP:"ハイドロポンプ",AQUA_JET:"アクアジェット",LIQUIDATION:"アクアブレイク",BLAST_BURN:"ブラストバーン",FLAME_CHARGE:"ニトロチャージ",OVERHEAT:"オーバーヒート",FIRE_BLAST:"だいもんじ",ICY_WIND:"こごえるかぜ",AVALANCHE:"ゆきなだれ",BLIZZARD:"ふぶき",WEATHER_BALL_NORMAL:"ウェザーボール",MOONBLAST:"ムーンフォース",PLAY_ROUGH:"じゃれつく",DAZZLING_GLEAM:"マジカルシャイン",PSYCHIC:"サイコキネシス",PSYSHOCK:"サイコショック",MIRROR_COAT:"ミラーコート",NIGHT_SLASH:"つじぎり",DARK_PULSE:"あくのはどう",CRUNCH:"かみくだく",OBSTRUCT:"ブロッキング",DRAGON_CLAW:"ドラゴンクロー",OUTRAGE:"げきりん",DRACO_METEOR:"りゅうせいぐん",BREAKING_SWIPE:"ワイドブレイカー",IRON_HEAD:"アイアンヘッド",FLASH_CANNON:"ラスターカノン",MAGNET_BOMB:"マグネットボム",HEAVY_SLAM:"ヘビーボンバー",GYRO_BALL:"ジャイロボール",X_SCISSOR:"シザークロス",BUG_BUZZ:"むしのさざめき",LUNGE:"とびかかる",MEGAHORN:"メガホーン",ANCIENT_POWER:"げんしのちから",ROCK_BLAST:"ロックブラスト",ROCK_WRECKER:"がんせきほう",DIG:"あなをほる",DRILL_RUN:"ドリルライナー",HIGH_HORSEPOWER:"10まんばりき",PRECIPICE_BLADES:"だんがいのつるぎ",BRAVE_BIRD:"ブレイブバード",AERIAL_ACE:"つばめがえし",HURRICANE:"ぼうふう",FEATHER_DANCE:"フェザーダンス",SHADOW_PUNCH:"シャドーパンチ",SHADOW_SNEAK:"かげうち",OMINOUS_WIND:"あやしいかぜ",POLTERGEIST:"ポルターガイスト",RETURN:"おんがえし",LAST_RESORT:"とっておき",HYPER_BEAM:"はかいこうせん",HORN_ATTACK:"つのでつく",SWIFT:"スピードスター"
+  BODY_SLAM:"のしかかり",SHADOW_BALL:"シャドーボール",SKY_ATTACK:"ゴッドバード",FLAMETHROWER:"かえんほうしゃ",HYDRO_CANNON:"ハイドロカノン",DRILL_PECK:"ドリルくちばし",AQUA_TAIL:"アクアテール",MUD_BOMB:"どろばくだん",ENERGY_BALL:"エナジーボール",ACROBATICS:"アクロバット",SAND_TOMB:"すなじごく",ROCK_TOMB:"がんせきふうじ",GIGATON_HAMMER:"デカハンマー",BULLDOZE:"じならし",WEATHER_BALL_FIRE:"ウェザーボール（ほのお）",AIR_CUTTER:"エアカッター",PAYBACK:"しっぺがえし",ICE_BEAM:"れいとうビーム",EARTHQUAKE:"じしん",STONE_EDGE:"ストーンエッジ",FOUL_PLAY:"イカサマ",DRAIN_PUNCH:"ドレインパンチ",SURF:"なみのり",NIGHT_SHADE:"ナイトヘッド",POWER_GEM:"パワージェム",ROCK_SLIDE:"いわなだれ",THUNDERBOLT:"10まんボルト",DISCHARGE:"ほうでん",WILD_CHARGE:"ワイルドボルト",THUNDER_PUNCH:"かみなりパンチ",ICE_PUNCH:"れいとうパンチ",FIRE_PUNCH:"ほのおのパンチ",POWER_UP_PUNCH:"グロウパンチ",CLOSE_COMBAT:"インファイト",CROSS_CHOP:"クロスチョップ",DYNAMIC_PUNCH:"ばくれつパンチ",SUPERPOWER:"ばかぢから",SUPER_POWER:"ばかぢから",SACRED_SWORD:"せいなるつるぎ",BRICK_BREAK:"かわらわり",LEAF_BLADE:"リーフブレード",SEED_BOMB:"タネばくだん",POWER_WHIP:"パワーウィップ",FRENZY_PLANT:"ハードプラント",SLUDGE_BOMB:"ヘドロばくだん",SLUDGE_WAVE:"ヘドロウェーブ",ACID_SPRAY:"アシッドボム",POISON_FANG:"どくどくのキバ",GUNK_SHOT:"ダストシュート",WEATHER_BALL_WATER:"ウェザーボール（みず）",WEATHER_BALL_ICE:"ウェザーボール（こおり）",WEATHER_BALL_ROCK:"ウェザーボール（いわ）",SCALD:"ねっとう",HYDRO_PUMP:"ハイドロポンプ",AQUA_JET:"アクアジェット",LIQUIDATION:"アクアブレイク",BLAST_BURN:"ブラストバーン",FLAME_CHARGE:"ニトロチャージ",OVERHEAT:"オーバーヒート",FIRE_BLAST:"だいもんじ",ICY_WIND:"こごえるかぜ",AVALANCHE:"ゆきなだれ",BLIZZARD:"ふぶき",WEATHER_BALL_NORMAL:"ウェザーボール",MOONBLAST:"ムーンフォース",PLAY_ROUGH:"じゃれつく",DAZZLING_GLEAM:"マジカルシャイン",PSYCHIC:"サイコキネシス",PSYSHOCK:"サイコショック",MIRROR_COAT:"ミラーコート",NIGHT_SLASH:"つじぎり",DARK_PULSE:"あくのはどう",CRUNCH:"かみくだく",OBSTRUCT:"ブロッキング",DRAGON_CLAW:"ドラゴンクロー",OUTRAGE:"げきりん",DRACO_METEOR:"りゅうせいぐん",BREAKING_SWIPE:"ワイドブレイカー",IRON_HEAD:"アイアンヘッド",FLASH_CANNON:"ラスターカノン",MAGNET_BOMB:"マグネットボム",HEAVY_SLAM:"ヘビーボンバー",GYRO_BALL:"ジャイロボール",X_SCISSOR:"シザークロス",BUG_BUZZ:"むしのさざめき",LUNGE:"とびかかる",MEGAHORN:"メガホーン",ANCIENT_POWER:"げんしのちから",ROCK_BLAST:"ロックブラスト",ROCK_WRECKER:"がんせきほう",DIG:"あなをほる",DRILL_RUN:"ドリルライナー",HIGH_HORSEPOWER:"10まんばりき",PRECIPICE_BLADES:"だんがいのつるぎ",BRAVE_BIRD:"ブレイブバード",AERIAL_ACE:"つばめがえし",HURRICANE:"ぼうふう",FEATHER_DANCE:"フェザーダンス",SHADOW_PUNCH:"シャドーパンチ",SHADOW_SNEAK:"かげうち",OMINOUS_WIND:"あやしいかぜ",POLTERGEIST:"ポルターガイスト",RETURN:"おんがえし",LAST_RESORT:"とっておき",HYPER_BEAM:"はかいこうせん",HORN_ATTACK:"つのでつく",SWIFT:"スピードスター"
 };
 
 const COMMON_JP = {
   lickilicky:"ベロベルト",feraligatr:"オーダイル",altaria:"チルタリス",corsola:"サニーゴ",jellicent:"ブルンゲル",quagsire:"ヌオー",jumpluff:"ワタッコ",empoleon:"エンペルト",clodsire:"ドオー",sableye:"ヤミラミ",ninetales:"キュウコン",corviknight:"アーマーガア",tinkaton:"デカヌチャン",azumarill:"マリルリ",skarmory:"エアームド",medicham:"チャーレム",stunfisk:"マッギョ",lanturn:"ランターン",gligar:"グライガー",gliscor:"グライオン",mandibuzz:"バルジーナ",dunsparce:"ノコッチ",dudunsparce:"ノココッチ",diggersby:"ホルード",carbink:"メレシー",toxapex:"ドヒドイデ",trevenant:"オーロット",venusaur:"フシギバナ",charizard:"リザードン",swampert:"ラグラージ",serperior:"ジャローダ",whiscash:"ナマズン",pelipper:"ペリッパー",noctowl:"ヨルノズク",umbreon:"ブラッキー",dewgong:"ジュゴン",lapras:"ラプラス",registeel:"レジスチル",bastiodon:"トリデプス",victreebel:"ウツボット",machamp:"カイリキー",primeape:"オコリザル",annihilape:"コノヨザル",poliwrath:"ニョロボン",toxicroak:"ドクロッグ",marowak:"ガラガラ",muk:"ベトベトン",drapion:"ドラピオン",golbat:"ゴルバット",crobat:"クロバット",ariados:"アリアドス",beedrill:"スピアー",forretress:"フォレトス",cradily:"ユレイドル",aurorus:"アマルルガ",abomasnow:"ユキノオー",walrein:"トドゼルガ",froslass:"ユキメノコ",alolan_sandslash:"サンドパン",sandslash:"サンドパン",wigglytuff:"プクリン",clefable:"ピクシー",sylveon:"ニンフィア",aromatisse:"フレフワン",togetic:"トゲチック",togekiss:"トゲキッス",dragonair:"ハクリュー",goodra:"ヌメルゴン",sliggoo:"ヌメイル",kommo_o:"ジャラランガ",hakamo_o:"ジャランゴ",zweilous:"ジヘッド",guzzlord:"アクジキング",greninja:"ゲッコウガ",samurott:"ダイケンキ",blastoise:"カメックス",tentacruel:"ドククラゲ",mantine:"マンタイン",araquanid:"オニシズクモ",golisopod:"グソクムシャ",charjabug:"デンヂムシ",galvantula:"デンチュラ",magnezone:"ジバコイル",togedemaru:"トゲデマル",pachirisu:"パチリス",raichu:"ライチュウ",electrode:"マルマイン",charjabug_shadow:"デンヂムシ",cofagrigus:"デスカーン",runerigus:"デスバーン",drifblim:"フワライド",dusclops:"サマヨール",haunter:"ゴースト",gengar:"ゲンガー",froslass_shadow:"ユキメノコ",mew:"ミュウ",cresselia:"クレセリア",deoxys_defense:"デオキシス",hypno:"スリーパー",malamar:"カラマネロ",oranguru:"ヤレユータン",girafarig:"キリンリキ",farigiraf:"リキキリン",lokix:"エクスレッグ",obstagoon:"タチフサグマ",scrafty:"ズルズキン",pangoro:"ゴロンダ",morpeko_full_belly:"モルペコ",perrserker:"ニャイキング",escavalier:"シュバルゴ",ferrothorn:"ナットレイ",steelix:"ハガネール",excadrill:"ドリュウズ",probopass:"ダイノーズ",aggron:"ボスゴドラ",melmetal:"メルメタル",aegislash_shield:"ギルガルド",talonflame:"ファイアロー",skeledirge:"ラウドボーン",salazzle:"エンニュート",typhlosion:"バクフーン",magcargo:"マグカルゴ",seismitoad:"ガマゲロゲ",gastrodon:"トリトドン",hippowdon:"カバルドン",flygon:"フライゴン",claydol:"ネンドール",rhyperior:"ドサイドン",vigoroth:"ヤルキモノ",greedent:"ヨクバリス",furret:"オオタチ",miltank:"ミルタンク",snorlax:"カビゴン",dubwool:"バイウールー",bibarel:"ビーダル",castform:"ポワルン"
 };
 
-const FALLBACK_FAST = {
-  ROLLOUT_FAST:{name:"ころがる",type:"rock",power:7,energy:13,turns:3},DRAGON_BREATH_FAST:{name:"りゅうのいぶき",type:"dragon",power:3,energy:4,turns:1},METAL_SOUND_FAST:{name:"きんぞくおん",type:"steel",power:5,energy:8,turns:2},MUD_SHOT_FAST:{name:"マッドショット",type:"ground",power:3,energy:9,turns:2},FAIRY_WIND_FAST:{name:"ようせいのかぜ",type:"fairy",power:4,energy:9,turns:2},VOLT_SWITCH_FAST:{name:"ボルトチェンジ",type:"electric",power:14,energy:16,turns:4},EMBER_FAST:{name:"ひのこ",type:"fire",power:4,energy:9,turns:2},SAND_ATTACK_FAST:{name:"すなかけ",type:"ground",power:2,energy:4,turns:1},SHADOW_CLAW_FAST:{name:"シャドークロー",type:"ghost",power:6,energy:8,turns:2},POISON_STING_FAST:{name:"どくばり",type:"poison",power:4,energy:9,turns:2}
+const FALLBACK_FAST = structuredClone(EMBEDDED.fast);
+const FALLBACK_CHARGED = structuredClone(EMBEDDED.charged);
+const FALLBACK_POKEMON = structuredClone(EMBEDDED.pokemon);
+let FAST_MOVES = structuredClone(EMBEDDED.fast);
+let CHARGED_MOVES = structuredClone(EMBEDDED.charged);
+let POKEMON = structuredClone(EMBEDDED.pokemon);
+let META_ORDER = [...EMBEDDED.order].filter(id=>POKEMON[id]);
+let DATA_INFO = {
+  source:EMBEDDED.source,
+  count:META_ORDER.length,
+  loaded:true,
+  updatedAt:EMBEDDED.updatedAt,
+  diagnostics:EMBEDDED.diagnostics
 };
-const FALLBACK_CHARGED = {
-  BODY_SLAM:{name:"のしかかり",type:"normal",power:55,energy:35},SHADOW_BALL:{name:"シャドーボール",type:"ghost",power:100,energy:50},SKY_ATTACK:{name:"ゴッドバード",type:"flying",power:75,energy:50},FLAMETHROWER:{name:"かえんほうしゃ",type:"fire",power:90,energy:55},HYDRO_CANNON:{name:"ハイドロカノン",type:"water",power:80,energy:40},DRILL_PECK:{name:"ドリルくちばし",type:"flying",power:70,energy:40},AQUA_TAIL:{name:"アクアテール",type:"water",power:55,energy:35},MUD_BOMB:{name:"どろばくだん",type:"ground",power:65,energy:45},ENERGY_BALL:{name:"エナジーボール",type:"grass",power:80,energy:45,effects:[{chance:.1,target:"opponent",stat:"defense",delta:-1}]},ACROBATICS:{name:"アクロバット",type:"flying",power:110,energy:55},SAND_TOMB:{name:"すなじごく",type:"ground",power:40,energy:40,effects:[{chance:1,target:"opponent",stat:"defense",delta:-1}]},ROCK_TOMB:{name:"がんせきふうじ",type:"rock",power:75,energy:50,effects:[{chance:1,target:"opponent",stat:"attack",delta:-1}]},GIGATON_HAMMER:{name:"デカハンマー",type:"steel",power:130,energy:60},BULLDOZE:{name:"じならし",type:"ground",power:45,energy:45,effects:[{chance:.5,target:"opponent",stat:"defense",delta:-1}]},WEATHER_BALL_FIRE:{name:"ウェザーボール（ほのお）",type:"fire",power:55,energy:35},AIR_CUTTER:{name:"エアカッター",type:"flying",power:45,energy:35,effects:[{chance:.3,target:"self",stat:"attack",delta:1}]},PAYBACK:{name:"しっぺがえし",type:"dark",power:110,energy:60},ICE_BEAM:{name:"れいとうビーム",type:"ice",power:90,energy:55},EARTHQUAKE:{name:"じしん",type:"ground",power:120,energy:65},STONE_EDGE:{name:"ストーンエッジ",type:"rock",power:100,energy:55},FOUL_PLAY:{name:"イカサマ",type:"dark",power:65,energy:40},DRAIN_PUNCH:{name:"ドレインパンチ",type:"fighting",power:40,energy:40,effects:[{chance:1,target:"self",stat:"defense",delta:1}]}
-};
-const FALLBACK_POKEMON = {
-  lickilicky:{name:"ベロベルト",englishName:"Lickilicky",cp:1500,types:["normal"],atk:105.7,def:139.5,hp:185,fast:"ROLLOUT_FAST",charged:["BODY_SLAM","SHADOW_BALL"],shadow:false,rank:1,score:94,dex:463},
-  altaria:{name:"チルタリス",englishName:"Altaria",cp:1497,types:["dragon","flying"],atk:103.4,def:151.9,hp:138,fast:"DRAGON_BREATH_FAST",charged:["SKY_ATTACK","FLAMETHROWER"],shadow:false,rank:4,score:92.3,dex:334},
-  empoleon:{name:"エンペルト",englishName:"Empoleon",cp:1500,types:["water","steel"],atk:125.1,def:117.0,hp:122,fast:"METAL_SOUND_FAST",charged:["HYDRO_CANNON","DRILL_PECK"],shadow:false,rank:20,score:88,dex:395},
-  quagsire_shadow:{name:"ヌオー（シャドウ）",englishName:"Quagsire (Shadow)",cp:1499,types:["water","ground"],atk:111.2,def:112.6,hp:161,fast:"MUD_SHOT_FAST",charged:["AQUA_TAIL","MUD_BOMB"],shadow:true,rank:15,score:89,dex:195},
-  jumpluff:{name:"ワタッコ",englishName:"Jumpluff",cp:1499,types:["grass","flying"],atk:96.7,def:156.9,hp:153,fast:"FAIRY_WIND_FAST",charged:["ENERGY_BALL","ACROBATICS"],shadow:false,rank:25,score:86,dex:189},
-  forretress_shadow:{name:"フォレトス（シャドウ）",englishName:"Forretress (Shadow)",cp:1500,types:["bug","steel"],atk:109.7,def:145.4,hp:128,fast:"VOLT_SWITCH_FAST",charged:["SAND_TOMB","ROCK_TOMB"],shadow:true,rank:35,score:83,dex:205},
-  tinkaton:{name:"デカヌチャン",englishName:"Tinkaton",cp:1497,types:["fairy","steel"],atk:106.0,def:151.5,hp:154,fast:"FAIRY_WIND_FAST",charged:["GIGATON_HAMMER","BULLDOZE"],shadow:false,rank:18,score:88,dex:959},
-  ninetales_shadow:{name:"キュウコン（シャドウ）",englishName:"Ninetales (Shadow)",cp:1495,types:["fire"],atk:114.3,def:135.5,hp:126,fast:"EMBER_FAST",charged:["WEATHER_BALL_FIRE","ENERGY_BALL"],shadow:true,rank:17,score:88.5,dex:38},
-  corviknight:{name:"アーマーガア",englishName:"Corviknight",cp:1500,types:["flying","steel"],atk:106.9,def:130.6,hp:150,fast:"SAND_ATTACK_FAST",charged:["AIR_CUTTER","PAYBACK"],shadow:false,rank:12,score:90,dex:823},
-  feraligatr:{name:"オーダイル",englishName:"Feraligatr",cp:1499,types:["water"],atk:123.8,def:117.3,hp:125,fast:"SHADOW_CLAW_FAST",charged:["HYDRO_CANNON","ICE_BEAM"],shadow:false,rank:2,score:93.1,dex:160},
-  clodsire:{name:"ドオー",englishName:"Clodsire",cp:1499,types:["poison","ground"],atk:95.0,def:119.7,hp:208,fast:"POISON_STING_FAST",charged:["EARTHQUAKE","STONE_EDGE"],shadow:false,rank:10,score:90.5,dex:980},
-  sableye_shadow:{name:"ヤミラミ（シャドウ）",englishName:"Sableye (Shadow)",cp:1499,types:["dark","ghost"],atk:119.6,def:124.6,hp:125,fast:"SHADOW_CLAW_FAST",charged:["FOUL_PLAY","DRAIN_PUNCH"],shadow:true,rank:14,score:89.5,dex:302}
-};
-
-let FAST_MOVES = structuredClone(FALLBACK_FAST);
-let CHARGED_MOVES = structuredClone(FALLBACK_CHARGED);
-let POKEMON = structuredClone(FALLBACK_POKEMON);
-let META_ORDER = Object.keys(POKEMON).sort((a,b)=>POKEMON[a].rank-POKEMON[b].rank);
-let DATA_INFO = { source:"内蔵フォールバック", count:META_ORDER.length, loaded:false, updatedAt:null };
 let japaneseNamesByEnglish = new Map();
 
-const PLAYER_DEFAULT = ["lickilicky","altaria","empoleon","quagsire_shadow","jumpluff","forretress_shadow"];
-const OPPONENT_DEFAULT = ["tinkaton","ninetales_shadow","corviknight","feraligatr","clodsire","sableye_shadow"];
+const PLAYER_DEFAULT = ["lickilicky","altaria","empoleon","quagsire_shadow","jumpluff","forretress_shadow"].filter(id=>POKEMON[id]);
+const OPPONENT_DEFAULT = ["tinkaton","ninetales_shadow","corviknight","feraligatr","clodsire","sableye_shadow"].filter(id=>POKEMON[id]);
 
 function clone(value){ return JSON.parse(JSON.stringify(value)); }
 function clamp(v,min,max){ return Math.max(min,Math.min(max,v)); }
@@ -109,11 +94,11 @@ function localizedSpeciesName(p){
 }
 
 function defaultState(){
-  return {playerRoster:[...PLAYER_DEFAULT],opponentRoster:[...OPPONENT_DEFAULT],playerPicks:[],opponentPicks:[],format:3,playerScore:0,opponentScore:0,gameNumber:1,history:[],lastBattle:null,lastRecommendations:null};
+  return {playerRoster:[...PLAYER_DEFAULT],opponentRoster:[...OPPONENT_DEFAULT],playerBuilds:Array(6).fill(null),opponentBuilds:Array(6).fill(null),playerPicks:[],opponentPicks:[],format:3,playerScore:0,opponentScore:0,gameNumber:1,history:[],lastBattle:null,lastRecommendations:null};
 }
 function loadState(){
   try{
-    const raw=localStorage.getItem(STORAGE_KEY) || localStorage.getItem(OLD_STORAGE_KEY);
+    const raw=localStorage.getItem(STORAGE_KEY) || OLD_STORAGE_KEYS.map(k=>localStorage.getItem(k)).find(Boolean);
     const parsed=raw?JSON.parse(raw):null;
     return parsed?{...defaultState(),...parsed}:defaultState();
   }catch{return defaultState();}
@@ -123,6 +108,7 @@ let state=loadState();
 let timerId=null;
 let timerValue=90;
 let dialogTarget=null;
+let buildTarget=null;
 
 function setDataBanner(title,text,kind="loading"){
   const banner=document.getElementById("dataBanner");
@@ -135,251 +121,54 @@ function setDataBanner(title,text,kind="loading"){
   if(chip)chip.textContent=`${DATA_INFO.count}体`;
 }
 
-async function fetchWithTimeout(url,options={},timeoutMs=15000){
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),timeoutMs);
-  try{return await fetch(url,{...options,signal:controller.signal})}finally{clearTimeout(timer)}
+function cpmAt(level){
+  const rounded=Math.round(Number(level)*2)/2;
+  return safeNumber(EMBEDDED.cpm[String(rounded)]??EMBEDDED.cpm[rounded.toFixed(1)],0);
 }
-async function fetchJson(url){
-  const response=await fetchWithTimeout(url,{cache:"no-store"});
-  if(!response.ok)throw new Error(`HTTP ${response.status}`);
-  return response.json();
+function cpFor(p,level,a,d,h){
+  const c=cpmAt(level);
+  if(!c)return 9999;
+  return Math.max(10,Math.floor((p.baseAtk+a)*Math.sqrt(p.baseDef+d)*Math.sqrt(p.baseSta+h)*c*c/10));
 }
-
-async function loadJapaneseNames(){
-  try{
-    const response=await fetchWithTimeout(JP_NAMES_URL,{cache:"force-cache"},7000);
-    if(!response.ok)return;
-    const raw=await response.text();
-    let parsed;
-    try{ parsed=JSON.parse(raw); }catch{ parsed=null; }
-    if(parsed&&typeof parsed==="object"){
-      const walk=value=>{
-        if(Array.isArray(value)){value.forEach(walk);return;}
-        if(!value||typeof value!=="object")return;
-        const values=Object.values(value).filter(v=>typeof v==="string");
-        const en=String(value.en||value.english||value.English||value.name_en||values.find(v=>/^[A-Za-z .:'-]+$/.test(v))||"").trim().toLowerCase();
-        const ja=String(value.ja||value.japanese||value.Japanese||value.jp||value.name_ja||values.find(v=>/[ぁ-んァ-ヶ一-龠]/.test(v))||"").trim();
-        if(en&&ja)japaneseNamesByEnglish.set(en,ja);
-        Object.values(value).forEach(walk);
-      };
-      walk(parsed);
-      if(japaneseNamesByEnglish.size)return;
-    }
-    for(const line of raw.split(/\r?\n/)){
-      const cols=line.split(/[\t,]/).map(x=>x.trim().replace(/^['"]|['"]$/g,""));
-      if(cols.length<2)continue;
-      const en=cols.find(x=>/[a-z]/i.test(x))?.toLowerCase();
-      const ja=cols.find(x=>/[ぁ-んァ-ヶ一-龠]/.test(x));
-      if(en&&ja)japaneseNamesByEnglish.set(en,ja);
-    }
-  }catch{/* Japanese names are optional. */}
+function statsFor(p,level,a,d,h){
+  const c=cpmAt(level);
+  return {level,atkIV:a,defIV:d,hpIV:h,cp:cpFor(p,level,a,d,h),atk:(p.baseAtk+a)*c,def:(p.baseDef+d)*c,hp:Math.max(10,Math.floor((p.baseSta+h)*c))};
 }
-
-function moveArray(value){
-  if(Array.isArray(value))return value;
-  if(value&&typeof value==="object")return Object.values(value);
-  return [];
+function presetData(p,preset="rank1"){
+  if(preset==="attack")return p.attackPreset||p.rank1;
+  if(preset==="cmp")return p.cmpPreset||p.attackPreset||p.rank1;
+  return p.rank1||{level:20,atkIV:0,defIV:15,hpIV:15,cp:p.cp,atk:p.atk,def:p.def,hp:p.hp};
 }
-
-function normalizeTypes(types){
-  return (Array.isArray(types)?types:[]).map(t=>String(t||"").toLowerCase()).filter(Boolean).slice(0,2);
-}
-
-function parseEffects(move){
-  const effects=[];
-  const chanceRaw=safeNumber(move.buffApplyChance??move.buffChance??move.chance,1);
-  const chance=chanceRaw>1?chanceRaw/100:chanceRaw;
-  const buffs=Array.isArray(move.buffs)?move.buffs:null;
-  const target=String(move.buffTarget||move.target||"self").toLowerCase().includes("opponent")?"opponent":"self";
-  if(buffs&&buffs.length>=2){
-    if(safeNumber(buffs[0])!==0)effects.push({chance,target,stat:"attack",delta:safeNumber(buffs[0])});
-    if(safeNumber(buffs[1])!==0)effects.push({chance,target,stat:"defense",delta:safeNumber(buffs[1])});
+function normalizeBuild(p,build){
+  const preset=build?.preset||"rank1";
+  const base=presetData(p,preset);
+  const level=clamp(Math.round(safeNumber(build?.level,base.level)*2)/2,1,50);
+  const atkIV=clamp(Math.round(safeNumber(build?.atkIV,base.atkIV)),0,15);
+  const defIV=clamp(Math.round(safeNumber(build?.defIV,base.defIV)),0,15);
+  const hpIV=clamp(Math.round(safeNumber(build?.hpIV,base.hpIV)),0,15);
+  const stat=statsFor(p,level,atkIV,defIV,hpIV);
+  const legalFast=(p.legalFast||[]).filter(id=>FAST_MOVES[id]);
+  const legalCharged=(p.legalCharged||[]).filter(id=>CHARGED_MOVES[id]);
+  const fast=legalFast.includes(build?.fast)?build.fast:(legalFast.includes(p.fast)?p.fast:legalFast[0]);
+  const requested=[build?.charged1,build?.charged2].filter(Boolean);
+  const charged=[];
+  for(const id of [...requested,...(p.charged||[]),...legalCharged]){
+    if(legalCharged.includes(id)&&!charged.includes(id))charged.push(id);
+    if(charged.length===2)break;
   }
-  const atk=safeNumber(move.attackBuff??move.atkBuff??0);
-  const def=safeNumber(move.defenseBuff??move.defBuff??0);
-  if(atk)effects.push({chance,target,stat:"attack",delta:atk});
-  if(def)effects.push({chance,target,stat:"defense",delta:def});
-  return effects;
+  return {...stat,preset,fast,charged,valid:stat.cp<=1500};
 }
-
-function normalizeMove(raw){
-  const id=String(raw.moveId||raw.id||raw.move_id||"").trim();
-  if(!id)return null;
-  const isFast=id.endsWith("_FAST")||safeNumber(raw.energyGain)>0||safeNumber(raw.cooldown)>0;
-  const type=String(raw.type||"normal").toLowerCase();
-  const name=moveName(id,raw.name||raw.moveName||id);
-  if(isFast){
-    const cooldown=safeNumber(raw.cooldown??raw.durationMs??raw.duration,500);
-    return {kind:"fast",id,data:{name,type,power:Math.max(1,safeNumber(raw.power,1)),energy:Math.max(0,safeNumber(raw.energyGain??raw.energy,0)),turns:Math.max(1,Math.round(cooldown/500))}};
-  }
-  const effects=parseEffects(raw);
-  return {kind:"charged",id,data:{name,type,power:Math.max(1,safeNumber(raw.power,1)),energy:Math.max(1,safeNumber(raw.energy??raw.energyCost,50)),...(effects.length?{effects}:{})}};
+function buildsKey(side){return side==="player"?"playerBuilds":"opponentBuilds"}
+function rosterKey(side){return side==="player"?"playerRoster":"opponentRoster"}
+function buildForSlot(side,index){
+  const id=state[rosterKey(side)][index],p=POKEMON[id];
+  return p?normalizeBuild(p,state[buildsKey(side)]?.[index]):null;
 }
-
-function rankingMoveId(items){
-  const rows=moveArray(items).filter(Boolean);
-  if(!rows.length)return null;
-  rows.sort((a,b)=>safeNumber(b.uses??b.usage??b.weight,0)-safeNumber(a.uses??a.usage??a.weight,0));
-  const first=rows[0];
-  return typeof first==="string"?first:String(first.moveId||first.id||first.move||"")||null;
+function effectivePokemon(side,index){
+  const id=state[rosterKey(side)][index],p=POKEMON[id];
+  if(!p)return null;
+  return {...p,...buildForSlot(side,index),id};
 }
-
-function rankingChargedIds(items){
-  const rows=moveArray(items).filter(Boolean);
-  rows.sort((a,b)=>safeNumber(b.uses??b.usage??b.weight,0)-safeNumber(a.uses??a.usage??a.weight,0));
-  return rows.map(x=>typeof x==="string"?x:String(x.moveId||x.id||x.move||"")).filter(Boolean).slice(0,2);
-}
-
-function cpMultiplierAt(level,settings){
-  const values=settings?.cpMultipliers||settings?.cpm||settings?.cp_multiplier||[];
-  if(Array.isArray(values)&&values.length){
-    const idx=Math.round((safeNumber(level,1)-1)*2);
-    return safeNumber(values[clamp(idx,0,values.length-1)],0);
-  }
-  if(values&&typeof values==="object"){
-    return safeNumber(values[String(level)]??values[String(safeNumber(level).toFixed(1))],0);
-  }
-  return 0;
-}
-
-function parseDefaultIV(raw){
-  const d=raw?.defaultIVs?.cp1500??raw?.defaultIVs?.[1500]??raw?.defaultIVs?.great??raw?.ivs??null;
-  if(Array.isArray(d)&&d.length>=4)return {level:safeNumber(d[0],20),atkIV:safeNumber(d[1]),defIV:safeNumber(d[2]),hpIV:safeNumber(d[3])};
-  if(d&&typeof d==="object")return {level:safeNumber(d.level??d.lvl,20),atkIV:safeNumber(d.atk??d.attack??d.atkIV),defIV:safeNumber(d.def??d.defense??d.defIV),hpIV:safeNumber(d.hp??d.sta??d.stamina??d.hpIV)};
-  return {level:20,atkIV:10,defIV:10,hpIV:10};
-}
-
-function calculateStats(raw,rankRow,settings){
-  const rs=rankRow?.stats||rankRow?.battleStats||{};
-  const directAtk=safeNumber(rs.atk??rs.attack??rankRow?.attack,0);
-  const directDef=safeNumber(rs.def??rs.defense??rankRow?.defense,0);
-  const directHp=safeNumber(rs.hp??rs.stamina??rankRow?.hp,0);
-  const directCp=safeNumber(rankRow?.cp??rs.cp,0);
-  if(directAtk>20&&directDef>20&&directHp>20)return {atk:directAtk,def:directDef,hp:Math.floor(directHp),cp:directCp||1500};
-
-  const base=raw?.baseStats||raw?.stats||{};
-  const baseAtk=safeNumber(base.atk??base.attack,100);
-  const baseDef=safeNumber(base.def??base.defense,100);
-  const baseHp=safeNumber(base.hp??base.stamina,100);
-  const iv=parseDefaultIV(rankRow||raw);
-  let cpm=cpMultiplierAt(iv.level,settings);
-  if(!cpm){
-    const numerator=(baseAtk+iv.atkIV)*Math.sqrt(baseDef+iv.defIV)*Math.sqrt(baseHp+iv.hpIV);
-    cpm=Math.sqrt(1500*10/Math.max(1,numerator));
-  }
-  const atk=(baseAtk+iv.atkIV)*cpm;
-  const def=(baseDef+iv.defIV)*cpm;
-  const hp=Math.max(10,Math.floor((baseHp+iv.hpIV)*cpm));
-  const cp=Math.max(10,Math.min(1500,Math.floor((baseAtk+iv.atkIV)*Math.sqrt(baseDef+iv.defIV)*Math.sqrt(baseHp+iv.hpIV)*cpm*cpm/10)));
-  return {atk,def,hp,cp};
-}
-
-function pokemonIndex(gmPokemon){
-  const map=new Map();
-  for(const p of moveArray(gmPokemon)){
-    const sid=String(p.speciesId||p.id||"").toLowerCase();
-    if(sid)map.set(sid,p);
-  }
-  return map;
-}
-
-function findGmPokemon(index,speciesId){
-  const sid=String(speciesId||"").toLowerCase();
-  if(index.has(sid))return index.get(sid);
-  const candidates=[sid.replace(/_shadow$/,""),sid.replace(/_(normal|purified)$/,""),baseSpeciesId(sid)];
-  for(const id of candidates)if(index.has(id))return index.get(id);
-  return null;
-}
-
-function extractRecommendedMoves(rankRow,gmP){
-  const moves=rankRow?.moves||rankRow?.moveSet||rankRow?.moveset||{};
-  let fast=rankingMoveId(moves.fastMoves??moves.fast??rankRow?.fastMoves);
-  let charged=rankingChargedIds(moves.chargedMoves??moves.chargeMoves??moves.charged??rankRow?.chargedMoves);
-  const gmFast=moveArray(gmP?.fastMoves).map(x=>typeof x==="string"?x:x.moveId||x.id).filter(Boolean);
-  const gmCharged=moveArray(gmP?.chargedMoves).map(x=>typeof x==="string"?x:x.moveId||x.id).filter(Boolean);
-  if(!fast)fast=gmFast[0];
-  charged=[...charged,...gmCharged.filter(x=>!charged.includes(x))].slice(0,2);
-  return {fast,charged};
-}
-
-function makePokemonEntry(rankRow,gmP,settings,index){
-  const speciesId=String(rankRow?.speciesId||rankRow?.id||gmP?.speciesId||gmP?.id||"").toLowerCase();
-  if(!speciesId||!gmP)return null;
-  const moves=extractRecommendedMoves(rankRow,gmP);
-  if(!FAST_MOVES[moves.fast]||moves.charged.length<1||moves.charged.some(id=>!CHARGED_MOVES[id]))return null;
-  const stats=calculateStats(gmP,rankRow,settings);
-  const shadow=/_shadow$/.test(speciesId)||Boolean(rankRow?.shadow);
-  const rawName=rankRow?.speciesName||gmP?.speciesName||speciesId;
-  const temp={speciesId,speciesName:rawName,englishName:rawName};
-  const dex=safeNumber(gmP?.dex??gmP?.dexNumber??rankRow?.dex,9000+index);
-  return {
-    name:localizedSpeciesName(temp),englishName:rawName,speciesId,dex,cp:Math.min(1500,stats.cp||1500),types:normalizeTypes(gmP.types),
-    atk:stats.atk,def:stats.def,hp:stats.hp,fast:moves.fast,charged:moves.charged,shadow,
-    rank:index+1,score:safeNumber(rankRow?.score,Math.max(1,100-index*.25))
-  };
-}
-
-function sanitizePool(pool){
-  const out={};
-  for(const [id,p] of Object.entries(pool||{})){
-    if(!p||!FAST_MOVES[p.fast]||!Array.isArray(p.charged)||!p.charged.length)continue;
-    if(p.charged.some(x=>!CHARGED_MOVES[x]))continue;
-    if(!Array.isArray(p.types)||!p.types.length)continue;
-    out[id]=p;
-  }
-  return out;
-}
-
-function buildMetaData(gm,rankings){
-  FAST_MOVES=structuredClone(FALLBACK_FAST);
-  CHARGED_MOVES=structuredClone(FALLBACK_CHARGED);
-  const rawMoves=moveArray(gm?.moves);
-  for(const raw of rawMoves){
-    const normalized=normalizeMove(raw);
-    if(!normalized)continue;
-    if(normalized.kind==="fast")FAST_MOVES[normalized.id]=normalized.data;
-    else CHARGED_MOVES[normalized.id]=normalized.data;
-  }
-  const pIndex=pokemonIndex(gm?.pokemon);
-  const rows=moveArray(rankings).sort((a,b)=>safeNumber(b.score,0)-safeNumber(a.score,0));
-  const pool={};
-  for(const row of rows){
-    if(Object.keys(pool).length>=POOL_TARGET)break;
-    const sid=String(row.speciesId||row.id||"").toLowerCase();
-    const gmP=findGmPokemon(pIndex,sid);
-    const entry=makePokemonEntry(row,gmP,gm?.settings,Object.keys(pool).length);
-    if(entry)pool[sid]=entry;
-  }
-  if(Object.keys(pool).length<POOL_TARGET){
-    for(const gmP of pIndex.values()){
-      if(Object.keys(pool).length>=POOL_TARGET)break;
-      const sid=String(gmP.speciesId||gmP.id||"").toLowerCase();
-      if(pool[sid])continue;
-      const entry=makePokemonEntry({speciesId:sid,speciesName:gmP.speciesName,score:0},gmP,gm?.settings,Object.keys(pool).length);
-      if(entry&&entry.cp<=1500)pool[sid]=entry;
-    }
-  }
-  return sanitizePool(pool);
-}
-
-function compactData(){
-  return {updatedAt:Date.now(),fast:FAST_MOVES,charged:CHARGED_MOVES,pokemon:POKEMON,order:META_ORDER};
-}
-
-function hydrateData(data,source){
-  if(!data?.pokemon||Object.keys(data.pokemon).length<20)throw new Error("ポケモンデータが不足しています");
-  FAST_MOVES={...structuredClone(FALLBACK_FAST),...(data.fast||{})};
-  CHARGED_MOVES={...structuredClone(FALLBACK_CHARGED),...(data.charged||{})};
-  POKEMON=sanitizePool(data.pokemon);
-  META_ORDER=(Array.isArray(data.order)?data.order:Object.keys(POKEMON)).filter(id=>POKEMON[id]).sort((a,b)=>safeNumber(POKEMON[a].rank,9999)-safeNumber(POKEMON[b].rank,9999));
-  DATA_INFO={source,count:META_ORDER.length,loaded:true,updatedAt:data.updatedAt||Date.now()};
-  repairStateRosters();
-  renderAll();
-  const when=new Date(DATA_INFO.updatedAt).toLocaleDateString("ja-JP");
-  setDataBanner("SLメタデータを読み込みました",`${source}・${DATA_INFO.count}体・更新 ${when}`,"ready");
-}
-
 function repairStateRosters(){
   const available=META_ORDER.length?META_ORDER:Object.keys(POKEMON);
   const repair=(current,defaults)=>{
@@ -387,54 +176,27 @@ function repairStateRosters(){
     for(const id of [...(current||[]),...defaults,...available]){
       if(!POKEMON[id])continue;
       if(result.some(x=>POKEMON[x]?.dex===POKEMON[id]?.dex))continue;
-      result.push(id);
-      if(result.length===6)break;
+      result.push(id);if(result.length===6)break;
     }
     return result;
   };
   state.playerRoster=repair(state.playerRoster,PLAYER_DEFAULT);
   state.opponentRoster=repair(state.opponentRoster,OPPONENT_DEFAULT);
+  state.playerBuilds=Array.from({length:6},(_,i)=>state.playerBuilds?.[i]||null);
+  state.opponentBuilds=Array.from({length:6},(_,i)=>state.opponentBuilds?.[i]||null);
   state.playerPicks=(state.playerPicks||[]).filter(i=>i>=0&&i<6).slice(0,3);
   state.opponentPicks=(state.opponentPicks||[]).filter(i=>i>=0&&i<6).slice(0,3);
   saveState();
 }
-
-function loadCachedMeta(){
-  try{
-    const cached=JSON.parse(localStorage.getItem(DATA_CACHE_KEY));
-    if(!cached?.pokemon)return false;
-    hydrateData(cached,"端末キャッシュ");
-    return Date.now()-safeNumber(cached.updatedAt,0)<DATA_CACHE_MAX_AGE;
-  }catch{return false;}
-}
-
-async function loadRemoteMeta(force=false){
-  const button=document.getElementById("refreshData");
-  if(button)button.disabled=true;
-  setDataBanner("SLデータを更新中…","PvPokeのランキングとゲームマスターを取得しています。","loading");
-  try{
-    const jpPromise=loadJapaneseNames();
-    const [gm,rankings]=await Promise.all([fetchJson(GM_URL),fetchJson(RANK_URL)]);
-    await jpPromise;
-    const pool=buildMetaData(gm,rankings);
-    if(Object.keys(pool).length<200)throw new Error(`取得できた有効データが${Object.keys(pool).length}体のみでした`);
-    POKEMON=pool;
-    META_ORDER=Object.keys(POKEMON).sort((a,b)=>POKEMON[a].rank-POKEMON[b].rank);
-    const data=compactData();
-    try{localStorage.setItem(DATA_CACHE_KEY,JSON.stringify(data));}catch{/* Quota errors use live data only. */}
-    hydrateData(data,"PvPoke現行SLランキング");
-  }catch(error){
-    const cached=loadCachedMeta();
-    if(!cached){
-      POKEMON=structuredClone(FALLBACK_POKEMON);
-      FAST_MOVES=structuredClone(FALLBACK_FAST);
-      CHARGED_MOVES=structuredClone(FALLBACK_CHARGED);
-      META_ORDER=Object.keys(POKEMON).sort((a,b)=>POKEMON[a].rank-POKEMON[b].rank);
-      DATA_INFO={source:"内蔵フォールバック",count:META_ORDER.length,loaded:false,updatedAt:null};
-      repairStateRosters();renderAll();
-      setDataBanner("オンラインデータを取得できませんでした",`${error.message}。初回は通信環境で「データ更新」を押してください。`,"error");
-    }
-  }finally{if(button)button.disabled=false;}
+function hydrateEmbeddedData(){
+  FAST_MOVES=structuredClone(EMBEDDED.fast);
+  CHARGED_MOVES=structuredClone(EMBEDDED.charged);
+  POKEMON=structuredClone(EMBEDDED.pokemon);
+  META_ORDER=[...EMBEDDED.order].filter(id=>POKEMON[id]);
+  DATA_INFO={source:EMBEDDED.source,count:META_ORDER.length,loaded:true,updatedAt:EMBEDDED.updatedAt,diagnostics:EMBEDDED.diagnostics};
+  repairStateRosters();
+  const when=new Date(DATA_INFO.updatedAt).toLocaleDateString("ja-JP");
+  setDataBanner("内蔵SLデータを読み込みました",`${DATA_INFO.count}体・技 ${DATA_INFO.diagnostics.moveCountFast+DATA_INFO.diagnostics.moveCountCharged}種・スナップショット ${when}`,"ready");
 }
 
 function effectiveness(type,defTypes){return defTypes.reduce((m,t)=>{if(IMMUNE[type]?.includes(t))return m*0.390625;if(SUPER[type]?.includes(t))return m*1.6;if(RESIST[type]?.includes(t))return m*0.625;return m},1)}
@@ -443,8 +205,8 @@ function attackStat(mon){return mon.atk*stageMult(mon.attackStage)*(mon.shadow?S
 function defenseStat(mon){return mon.def*stageMult(mon.defenseStage)*(mon.shadow?SHADOW_DEFENSE:1)}
 function calcDamage(attacker,defender,move){if(!attacker||!defender||!move)return 1;const stab=attacker.types.includes(move.type)?STAB:1;const eff=effectiveness(move.type,defender.types);return Math.max(1,Math.floor(.5*move.power*(attackStat(attacker)/Math.max(1,defenseStat(defender)))*stab*eff*1.2999999523)+1)}
 
-function monFromId(id){const p=POKEMON[id]||Object.values(FALLBACK_POKEMON)[0];return {...p,id,maxHp:p.hp,currentHp:p.hp,energy:0,attackStage:0,defenseStage:0,fastPending:null,fainted:false}}
-function createTeam(roster,picks){return {party:picks.map(i=>monFromId(roster[i])),active:0,shields:2,switchCooldown:0}}
+function monFromId(id,build=null){const p=POKEMON[id]||Object.values(FALLBACK_POKEMON)[0];const b=normalizeBuild(p,build);return {...p,...b,id,maxHp:b.hp,currentHp:b.hp,energy:0,attackStage:0,defenseStage:0,fastPending:null,fainted:false}}
+function createTeam(roster,picks,builds){return {party:picks.map(i=>monFromId(roster[i],builds?.[i])),active:0,shields:2,switchCooldown:0}}
 function active(team){return team.party[team.active]}
 function alive(team){return team.party.map((m,i)=>!m.fainted?i:-1).filter(i=>i>=0)}
 function battleOver(a,b){return alive(a).length===0||alive(b).length===0}
@@ -500,8 +262,8 @@ function turnLabel(turn){return `${(turn*TURN_MS/1000).toFixed(1)}秒`}
 function forceSwitch(team,opp,log,turn){const options=alive(team).filter(i=>i!==team.active);if(!options.length)return;let best=options[0],score=-Infinity;for(const i of options){const s=matchupScore(team.party[i],opp);if(s>score){score=s;best=i}}team.active=best;team.party[best].fastPending=null;log.push(`${turnLabel(turn)} ${active(team).name}を繰り出した`)}
 function processFaints(a,b,log,turn){const am=active(a),bm=active(b);if(am&&am.currentHp<=0&&!am.fainted){am.fainted=true;am.currentHp=0;am.fastPending=null;log.push(`${turnLabel(turn)} ${am.name}がひんし`)}if(bm&&bm.currentHp<=0&&!bm.fainted){bm.fainted=true;bm.currentHp=0;bm.fastPending=null;log.push(`${turnLabel(turn)} ${bm.name}がひんし`)}if(!battleOver(a,b)){if(active(a).fainted)forceSwitch(a,active(b),log,turn);if(active(b).fainted)forceSwitch(b,active(a),log,turn)}}
 
-function simulateBattle(playerRoster,playerPicks,opponentRoster,opponentPicks,seed,style="balanced",verbose=true){
-  const rng=mulberry32(Number(seed)||1),p=createTeam(playerRoster,playerPicks),o=createTeam(opponentRoster,opponentPicks),log=[];
+function simulateBattle(playerRoster,playerPicks,opponentRoster,opponentPicks,seed,style="balanced",verbose=true,playerBuilds=state.playerBuilds,opponentBuilds=state.opponentBuilds){
+  const rng=mulberry32(Number(seed)||1),p=createTeam(playerRoster,playerPicks,playerBuilds),o=createTeam(opponentRoster,opponentPicks,opponentBuilds),log=[];
   for(let turn=1;turn<=MAX_TURNS;turn++){
     p.switchCooldown=Math.max(0,p.switchCooldown-1);o.switchCooldown=Math.max(0,o.switchCooldown-1);
     const pActor=active(p),oActor=active(o);
@@ -563,16 +325,18 @@ function moveLabel(p){const fast=FAST_MOVES[p.fast]?.name||p.fast;const charged=
 function typeChips(types){return (types||[]).map(t=>`<span class="type-chip type-${escapeHtml(t)}">${escapeHtml(typeName(t))}</span>`).join("")}
 
 function rosterCard(side,index,id){
-  const p=POKEMON[id];const card=document.createElement("article");card.className="roster-slot-card";
-  if(!p){card.textContent="データなし";return card;}
+  const p=POKEMON[id],b=buildForSlot(side,index),card=document.createElement("article");card.className="roster-slot-card";
+  if(!p||!b){card.textContent="データなし";return card;}
+  if(!b.valid)card.classList.add("invalid-build");
   card.innerHTML=`
     <span class="slot-number">${index+1}</span>
     <div class="roster-main">
-      <div class="roster-title"><strong>${escapeHtml(p.name)}</strong><span class="cp-chip">CP ${p.cp}</span></div>
-      <div class="type-row">${typeChips(p.types)}<span class="rank-chip">SL #${p.rank||"—"}</span></div>
-      <small class="roster-moves">${escapeHtml(moveLabel(p))}</small>
+      <div class="roster-title"><strong>${escapeHtml(p.name)}</strong><span class="cp-chip">CP ${b.cp}</span></div>
+      <div class="type-row">${typeChips(p.types)}<span class="rank-chip">収録 #${p.rank||"—"}</span></div>
+      <div class="build-summary"><span>Lv ${b.level}</span><span>IV ${b.atkIV}/${b.defIV}/${b.hpIV}</span><span>A ${b.atk.toFixed(1)}</span><span>D ${b.def.toFixed(1)}</span><span>HP ${b.hp}</span></div>
+      <small class="roster-moves">${escapeHtml(moveLabel({...p,...b}))}</small>
     </div>
-    <button class="change-pokemon ghost-button" data-side="${side}" data-index="${index}" type="button">変更</button>`;
+    <div class="roster-actions"><button class="build-pokemon secondary-button" data-side="${side}" data-index="${index}" type="button">個体・技</button><button class="change-pokemon ghost-button" data-side="${side}" data-index="${index}" type="button">変更</button></div>`;
   return card;
 }
 function renderRosters(){
@@ -622,6 +386,7 @@ function chooseDialogPokemon(id){
   if(!dialogTarget||!POKEMON[id])return;
   const key=dialogTarget.side==="player"?"playerRoster":"opponentRoster";
   state[key][dialogTarget.index]=id;
+  state[buildsKey(dialogTarget.side)][dialogTarget.index]=null;
   state.playerPicks=[];state.opponentPicks=[];state.lastRecommendations=null;
   saveState();renderAll();
   document.getElementById("pokemonDialog").close();dialogTarget=null;
@@ -630,9 +395,9 @@ function chooseDialogPokemon(id){
 function renderPickGrid(id,roster,picks,side){
   const root=document.getElementById(id);
   root.replaceChildren(...roster.map((pid,index)=>{
-    const p=POKEMON[pid],button=document.createElement("button");button.type="button";button.className="pick-card";button.dataset.side=side;button.dataset.index=String(index);
+    const p=effectivePokemon(side,index),button=document.createElement("button");button.type="button";button.className="pick-card";button.dataset.side=side;button.dataset.index=String(index);
     const order=picks.indexOf(index);if(order>=0)button.classList.add("is-picked");
-    button.innerHTML=`<strong>${escapeHtml(p.name)}</strong><small>CP ${p.cp}・SL #${p.rank||"—"}</small><span class="type-row">${typeChips(p.types)}</span><small>${escapeHtml(moveLabel(p))}</small>`;
+    button.innerHTML=`<strong>${escapeHtml(p.name)}</strong><small>CP ${p.cp}・Lv ${p.level}・IV ${p.atkIV}/${p.defIV}/${p.hpIV}</small><span class="type-row">${typeChips(p.types)}</span><small>${escapeHtml(moveLabel(p))}</small>`;
     if(order>=0){const badge=document.createElement("span");badge.className="pick-order";badge.textContent=String(order+1);button.appendChild(badge)}
     return button;
   }));
@@ -660,7 +425,7 @@ function currentSeed(){return Number(document.getElementById("seedInput").value)
 function currentStyle(){return document.getElementById("aiStyle").value}
 function runOne(record=false){
   if(!validPicks()){switchTab("selection");document.getElementById("selectionMessage").textContent="両者とも3体を選んでください。";return null}
-  const result=simulateBattle(state.playerRoster,state.playerPicks,state.opponentRoster,state.opponentPicks,currentSeed()+state.gameNumber-1,currentStyle(),true);
+  const result=simulateBattle(state.playerRoster,state.playerPicks,state.opponentRoster,state.opponentPicks,currentSeed()+state.gameNumber-1,currentStyle(),true,state.playerBuilds,state.opponentBuilds);
   state.lastBattle=result;saveState();showResult(result);if(record)recordSimulatedWinner(result);return result;
 }
 function runBatch(){
@@ -668,7 +433,7 @@ function runBatch(){
   const button=document.getElementById("runBatch");button.disabled=true;button.textContent="100試合を計算中…";
   setTimeout(()=>{
     const seed=currentSeed(),style=currentStyle();let pw=0,ow=0,sec=0,aliveSum=0;
-    for(let i=0;i<100;i++){const result=simulateBattle(state.playerRoster,state.playerPicks,state.opponentRoster,state.opponentPicks,seed+i,style,false);if(result.winner==="player")pw++;else ow++;sec+=result.seconds;aliveSum+=result.player.alive}
+    for(let i=0;i<100;i++){const result=simulateBattle(state.playerRoster,state.playerPicks,state.opponentRoster,state.opponentPicks,seed+i,style,false,state.playerBuilds,state.opponentBuilds);if(result.winner==="player")pw++;else ow++;sec+=result.seconds;aliveSum+=result.player.alive}
     showResult({winner:pw>=ow?"player":"opponent"},{playerPct:pw,playerWins:pw,opponentWins:ow,avgSeconds:sec/100,avgAlive:aliveSum/100,seed});
     button.disabled=false;button.textContent="100試合で勝率分析";
   },30);
@@ -682,7 +447,8 @@ function lineupPermutations(){
   }
   return lines;
 }
-function lineMons(roster,line){return line.map(i=>monFromId(roster[i]))}
+function lineMons(roster,line,builds){return line.map(i=>monFromId(roster[i],builds?.[i]))}
+function pairScoreBySlots(aRoster,aIndex,bRoster,bIndex,aBuilds,bBuilds){return clamp(matchupScore(monFromId(aRoster[aIndex],aBuilds?.[aIndex]),monFromId(bRoster[bIndex],bBuilds?.[bIndex])),-2,2)}
 function pairScoreById(aId,bId){return clamp(matchupScore(monFromId(aId),monFromId(bId)),-2,2)}
 function lineupHeuristic(playerRoster,pLine,opponentRoster,oLine){
   const pIds=pLine.map(i=>playerRoster[i]),oIds=oLine.map(i=>opponentRoster[i]);
@@ -709,7 +475,7 @@ function simulateLineEstimate(playerLine,opponentLines,seed,style){
   let wins=0,total=0,alive=0;
   opponentLines.forEach((oLine,j)=>{
     for(let k=0;k<3;k++){
-      const result=simulateBattle(state.playerRoster,playerLine,state.opponentRoster,oLine,seed+j*17+k*1009,style,false);
+      const result=simulateBattle(state.playerRoster,playerLine,state.opponentRoster,oLine,seed+j*17+k*1009,style,false,state.playerBuilds,state.opponentBuilds);
       wins+=result.winner==="player"?1:0;alive+=result.player.alive;total++;
     }
   });
@@ -784,6 +550,54 @@ function analyzeSelections(){
   },50);
 }
 
+function openBuildDialog(side,index){
+  buildTarget={side,index};
+  const p=POKEMON[state[rosterKey(side)][index]],current=buildForSlot(side,index);
+  if(!p||!current)return;
+  document.getElementById("buildDialogTitle").textContent=`${p.name}の個体値・技`;
+  document.getElementById("buildPreset").value=state[buildsKey(side)][index]?.preset||"rank1";
+  document.getElementById("buildLevel").value=current.level;
+  document.getElementById("buildAtkIv").value=current.atkIV;
+  document.getElementById("buildDefIv").value=current.defIV;
+  document.getElementById("buildHpIv").value=current.hpIV;
+  const fast=document.getElementById("buildFast"),c1=document.getElementById("buildCharged1"),c2=document.getElementById("buildCharged2");
+  fast.replaceChildren(...p.legalFast.map(id=>new Option(FAST_MOVES[id]?.name||id,id)));
+  c1.replaceChildren(...p.legalCharged.map(id=>new Option(CHARGED_MOVES[id]?.name||id,id)));
+  c2.replaceChildren(...p.legalCharged.map(id=>new Option(CHARGED_MOVES[id]?.name||id,id)));
+  fast.value=current.fast;c1.value=current.charged[0]||p.legalCharged[0];c2.value=current.charged[1]||p.legalCharged.find(x=>x!==c1.value)||c1.value;
+  updateBuildPreview();
+  document.getElementById("buildMessage").textContent="";
+  document.getElementById("buildDialog").showModal();
+}
+function readBuildForm(){
+  return {preset:document.getElementById("buildPreset").value,level:safeNumber(document.getElementById("buildLevel").value),atkIV:safeNumber(document.getElementById("buildAtkIv").value),defIV:safeNumber(document.getElementById("buildDefIv").value),hpIV:safeNumber(document.getElementById("buildHpIv").value),fast:document.getElementById("buildFast").value,charged1:document.getElementById("buildCharged1").value,charged2:document.getElementById("buildCharged2").value};
+}
+function applyPresetToBuildForm(){
+  if(!buildTarget)return;const p=POKEMON[state[rosterKey(buildTarget.side)][buildTarget.index]],preset=document.getElementById("buildPreset").value;
+  if(preset!=="custom"){
+    const b=presetData(p,preset);document.getElementById("buildLevel").value=b.level;document.getElementById("buildAtkIv").value=b.atkIV;document.getElementById("buildDefIv").value=b.defIV;document.getElementById("buildHpIv").value=b.hpIV;
+  }
+  updateBuildPreview();
+}
+function updateBuildPreview(){
+  if(!buildTarget)return;const p=POKEMON[state[rosterKey(buildTarget.side)][buildTarget.index]],b=normalizeBuild(p,readBuildForm()),preview=document.getElementById("buildPreview");
+  preview.className=`result-card ${b.valid?"":"invalid-build"}`;
+  preview.innerHTML=`<h3>${escapeHtml(p.name)} / CP ${b.cp}</h3><p>Lv ${b.level}・IV ${b.atkIV}/${b.defIV}/${b.hpIV}</p><div class="metric-row"><div class="metric"><strong>${b.atk.toFixed(2)}</strong><span>攻撃</span></div><div class="metric"><strong>${b.def.toFixed(2)}</strong><span>防御</span></div><div class="metric"><strong>${b.hp}</strong><span>HP</span></div></div><p class="result-note">${b.valid?"スーパーリーグ上限内です。":"CP1500を超えています。レベルまたは個体値を下げてください。"}</p>`;
+}
+function saveBuildFromDialog(){
+  if(!buildTarget)return;const p=POKEMON[state[rosterKey(buildTarget.side)][buildTarget.index]],raw=readBuildForm(),b=normalizeBuild(p,raw);
+  if(!b.valid){document.getElementById("buildMessage").textContent="CP1500を超えているため保存できません。";return}
+  state[buildsKey(buildTarget.side)][buildTarget.index]=raw;state.lastRecommendations=null;saveState();renderAll();document.getElementById("buildDialog").close();buildTarget=null;
+}
+function renderDataLibrary(query=""){
+  const d=DATA_INFO.diagnostics||{},q=String(query).trim().toLowerCase();
+  document.getElementById("dataCountChip").textContent=`${DATA_INFO.count}体`;
+  document.getElementById("dataMetrics").innerHTML=`<div class="metric"><strong>${DATA_INFO.count}</strong><span>収録ポケモン</span></div><div class="metric"><strong>${d.moveCountFast||0}</strong><span>通常技</span></div><div class="metric"><strong>${d.moveCountCharged||0}</strong><span>ゲージ技</span></div>`;
+  const ids=META_ORDER.filter(id=>{const p=POKEMON[id],hay=[p.name,p.englishName,...p.types.map(typeName),...p.types,FAST_MOVES[p.fast]?.name,...p.charged.map(x=>CHARGED_MOVES[x]?.name)].join(" ").toLowerCase();return !q||hay.includes(q)}).slice(0,q?320:120);
+  document.getElementById("dataList").replaceChildren(...ids.map(id=>{const p=POKEMON[id],b=p.rank1,row=document.createElement("article");row.className="data-row";row.innerHTML=`<span class="data-rank">#${p.rank}</span><div class="data-main"><strong>${escapeHtml(p.name)}</strong><small>${typeChips(p.types)} ${escapeHtml(moveLabel(p))}</small></div><div class="data-build">CP ${b.cp}<br>Lv ${b.level} / IV ${b.atkIV}/${b.defIV}/${b.hpIV}</div>`;return row}));
+  document.getElementById("dataDiagnostics").innerHTML=`<p><strong>データ元:</strong> ${escapeHtml(DATA_INFO.source)}</p><p><strong>基準日:</strong> ${new Date(DATA_INFO.updatedAt).toLocaleDateString("ja-JP")}</p><p><strong>収録:</strong> 通常・フォルム ${d.baseForms||0}、シャドウ ${d.shadowForms||0}</p><p><strong>除外:</strong> ${d.excludedCount||0}件${d.excludedCount?`（${(d.excluded||[]).map(x=>`${escapeHtml(x.id)}: ${escapeHtml(x.reason)}`).join(" / ")}）`:"。数値データ不足による除外はありません。"}</p><p>各個体はCP1500以下でSCPが最大となるレベル・個体値を全4096通りから計算しています。攻撃寄り・CMP寄り・手入力にも切替可能です。</p>`;
+}
+
 function targetWins(){return Math.ceil(Number(state.format)/2)}
 function matchFinished(){return state.playerScore>=targetWins()||state.opponentScore>=targetWins()}
 function recordSimulatedWinner(result){
@@ -802,12 +616,12 @@ function renderMatch(){
   const msg=document.getElementById("matchMessage");msg.textContent=state.playerScore>=targetWins()?"マッチ終了：あなたの勝利 🎉":state.opponentScore>=targetWins()?"マッチ終了：相手の勝利":"";
 }
 function resetMatch(){state.playerScore=0;state.opponentScore=0;state.gameNumber=1;state.history=[];state.playerPicks=[];state.opponentPicks=[];state.lastRecommendations=null;saveState();renderSelection();renderMatch();renderBattleLineups();document.getElementById("recommendationPanel").hidden=true}
-function resetAll(){if(!confirm("登録・選出・履歴・キャッシュ以外の設定を初期化しますか？"))return;state=defaultState();repairStateRosters();saveState();renderAll();switchTab("roster")}
+function resetAll(){if(!confirm("登録・個体値・技・選出・履歴を初期化しますか？"))return;state=defaultState();repairStateRosters();saveState();renderAll();switchTab("roster")}
 
-function switchTab(name){document.querySelectorAll(".tab").forEach(button=>button.classList.toggle("is-active",button.dataset.tab===name));document.querySelectorAll(".panel").forEach(panel=>panel.classList.toggle("is-active",panel.id===name));if(name==="selection")renderSelection();if(name==="battle")renderBattleLineups();if(name==="match")renderMatch();window.scrollTo({top:0,behavior:"smooth"})}
+function switchTab(name){document.querySelectorAll(".tab").forEach(button=>button.classList.toggle("is-active",button.dataset.tab===name));document.querySelectorAll(".panel").forEach(panel=>panel.classList.toggle("is-active",panel.id===name));if(name==="selection")renderSelection();if(name==="battle")renderBattleLineups();if(name==="match")renderMatch();if(name==="data")renderDataLibrary(document.getElementById("dataSearch")?.value||"");window.scrollTo({top:0,behavior:"smooth"})}
 function startTimer(){clearInterval(timerId);timerValue=90;updateTimer();timerId=setInterval(()=>{timerValue--;updateTimer();if(timerValue<=0){clearInterval(timerId);timerId=null;document.getElementById("selectionMessage").textContent="選出時間が終了しました。"}},1000)}
 function updateTimer(){const el=document.getElementById("timer");el.textContent=timerValue;el.closest(".timer-box").classList.toggle("is-low",timerValue<=15)}
-function renderAll(){renderRosters();renderSelection();renderBattleLineups();renderMatch();updateTimer();if(state.lastRecommendations?.results?.length)renderRecommendations(state.lastRecommendations.results,null)}
+function renderAll(){renderRosters();renderSelection();renderBattleLineups();renderMatch();renderDataLibrary(document.getElementById("dataSearch")?.value||"");updateTimer();if(state.lastRecommendations?.results?.length)renderRecommendations(state.lastRecommendations.results,null)}
 
 function applyRecommendation(line){
   const parsed=String(line||"").split(",").map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<6);
@@ -822,12 +636,19 @@ function wireEvents(){
   document.getElementById("saveRosters").addEventListener("click",()=>{const error=validateRosters();document.getElementById("rosterMessage").textContent=error||"保存しました。";if(!error){saveState();renderSelection();switchTab("selection")}});
   document.addEventListener("click",event=>{
     const change=event.target.closest(".change-pokemon");if(change){openPokemonDialog(change.dataset.side,Number(change.dataset.index));return}
+    const build=event.target.closest(".build-pokemon");if(build){openBuildDialog(build.dataset.side,Number(build.dataset.index));return}
     const option=event.target.closest(".pokemon-option");if(option&&!option.disabled){chooseDialogPokemon(option.dataset.pokemonId);return}
     const pick=event.target.closest(".pick-card");if(pick){togglePick(pick.dataset.side,Number(pick.dataset.index));return}
     const apply=event.target.closest(".apply-recommendation");if(apply){applyRecommendation(apply.dataset.line)}
   });
   document.getElementById("pokemonSearch").addEventListener("input",event=>renderPokemonOptions(event.target.value));
   document.getElementById("closePokemonDialog").addEventListener("click",()=>document.getElementById("pokemonDialog").close());
+  document.getElementById("closeBuildDialog").addEventListener("click",()=>document.getElementById("buildDialog").close());
+  document.getElementById("buildPreset").addEventListener("change",applyPresetToBuildForm);
+  ["buildLevel","buildAtkIv","buildDefIv","buildHpIv","buildFast","buildCharged1","buildCharged2"].forEach(id=>document.getElementById(id).addEventListener("input",()=>{document.getElementById("buildPreset").value="custom";updateBuildPreview()}));
+  document.getElementById("saveBuild").addEventListener("click",saveBuildFromDialog);
+  document.getElementById("dataSearch").addEventListener("input",event=>renderDataLibrary(event.target.value));
+  document.getElementById("openDataTab").addEventListener("click",()=>switchTab("data"));
   document.getElementById("startTimer").addEventListener("click",startTimer);
   document.getElementById("clearPicks").addEventListener("click",()=>{state.playerPicks=[];state.opponentPicks=[];state.lastRecommendations=null;saveState();renderSelection();document.getElementById("recommendationPanel").hidden=true});
   document.getElementById("confirmPicks").addEventListener("click",()=>{if(!validPicks()){document.getElementById("selectionMessage").textContent="両者とも3体を選んでください。";return}clearInterval(timerId);document.getElementById("selectionMessage").textContent="選出を確定しました。";saveState();renderBattleLineups();switchTab("battle")});
@@ -839,14 +660,10 @@ function wireEvents(){
   document.getElementById("newMatch").addEventListener("click",resetMatch);
   document.getElementById("matchFormat").addEventListener("change",event=>{state.format=Number(event.target.value);resetMatch()});
   document.getElementById("resetAll").addEventListener("click",resetAll);
-  document.getElementById("refreshData").addEventListener("click",()=>loadRemoteMeta(true));
-}
+  }
 
 async function bootstrap(){
-  wireEvents();repairStateRosters();renderAll();
-  const cacheFresh=loadCachedMeta();
-  if(!cacheFresh)await loadRemoteMeta(false);
-  else setTimeout(()=>loadRemoteMeta(false),250);
+  hydrateEmbeddedData();wireEvents();repairStateRosters();renderAll();
   if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
 }
 if(typeof document!=="undefined")bootstrap();
