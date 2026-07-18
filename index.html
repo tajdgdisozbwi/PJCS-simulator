@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="PJCS Sim" />
-  <title>PJCS Pokémon GO Simulator v0.2</title>
+  <title>PJCS Pokémon GO Simulator v0.3</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -21,6 +21,14 @@
   </header>
 
   <main class="app-shell">
+    <section id="dataBanner" class="data-banner" aria-live="polite">
+      <div>
+        <strong id="dataStatusTitle">SLデータを読み込み中…</strong>
+        <span id="dataStatusText">PvPokeの現行ランキングとゲームデータを確認しています。</span>
+      </div>
+      <button id="refreshData" class="ghost-button" type="button">データ更新</button>
+    </section>
+
     <nav class="tabs" aria-label="画面切替">
       <button class="tab is-active" data-tab="roster" type="button">6体登録</button>
       <button class="tab" data-tab="selection" type="button">3体選出</button>
@@ -31,9 +39,9 @@
     <section id="roster" class="panel is-active">
       <div class="section-heading">
         <div><p class="step">STEP 1</p><h2>両者の6体を登録</h2></div>
-        <span class="status-chip">12種の検証済みプリセット</span>
+        <span id="poolChip" class="status-chip">読み込み中</span>
       </div>
-      <p class="lead">この版では、最新SL練習用に登録した12種のランク1相当ステータスと推奨技を使用します。</p>
+      <p class="lead">現行SLランキングを優先したポケモンプールから選択します。各枠の「変更」を押すと検索できます。</p>
       <div class="two-column">
         <section class="team-card"><div class="team-card-header"><h3>あなた</h3><span id="playerReady" class="mini-status">6 / 6</span></div><div id="playerRoster" class="roster-grid"></div></section>
         <section class="team-card"><div class="team-card-header"><h3>相手</h3><span id="opponentReady" class="mini-status">6 / 6</span></div><div id="opponentRoster" class="roster-grid"></div></section>
@@ -69,8 +77,9 @@
         <h3>現在の選出</h3>
         <div class="current-lineup"><div><span>あなた</span><div id="battlePlayerLineup" class="lineup-pills"></div></div><div><span>相手</span><div id="battleOpponentLineup" class="lineup-pills"></div></div></div>
       </section>
-      <div class="button-row two"><button id="runBattle" class="primary-button" type="button">1試合を自動対戦</button><button id="runBatch" class="secondary-button" type="button">100試合で勝率分析</button></div>
+      <div class="button-row three"><button id="runBattle" class="primary-button" type="button">1試合を自動対戦</button><button id="runBatch" class="secondary-button" type="button">100試合で勝率分析</button><button id="analyzeSelections" class="spark-button" type="button">✨ 勝てる選出を探す</button></div>
       <section id="battleResult" class="result-card" aria-live="polite"><p>選出を確定すると自動対戦できます。</p></section>
+      <section id="recommendationPanel" class="recommendation-panel" hidden aria-live="polite"></section>
       <details class="log-card"><summary>ターンログを見る</summary><ol id="battleLog" class="battle-log"></ol></details>
     </section>
 
@@ -84,7 +93,17 @@
     </section>
   </main>
 
-  <footer class="app-footer">PJCS training simulator v0.2 beta / curated GL data</footer>
+  <dialog id="pokemonDialog" class="pokemon-dialog">
+    <div class="dialog-head">
+      <div><p class="step">POKÉMON SELECT</p><h2>ポケモンを変更</h2></div>
+      <button id="closePokemonDialog" class="ghost-button" type="button">閉じる</button>
+    </div>
+    <label class="search-control">名前・タイプで検索<input id="pokemonSearch" type="search" placeholder="例：ヌオー / water / shadow" autocomplete="off" /></label>
+    <p id="dialogHint" class="muted"></p>
+    <div id="pokemonList" class="pokemon-list"></div>
+  </dialog>
+
+  <footer class="app-footer">PJCS training simulator v0.3 beta / PvPoke current GL data + local cache</footer>
   <script src="app.js" defer></script>
 </body>
 </html>
