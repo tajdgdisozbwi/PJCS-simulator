@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="PJCS Sim" />
-  <title>PJCS Pokémon GO Simulator v0.5</title>
+  <title>PJCS Pokémon GO Simulator v0.6</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -95,7 +95,7 @@
 
     <section id="data" class="panel">
       <div class="section-heading"><div><p class="step">DATA LIBRARY</p><h2>内蔵ポケモン一覧</h2></div><span id="dataCountChip" class="status-chip">321体</span></div>
-      <p class="lead">外部通信なしで使える固定スナップショットです。表示される順位はPvPokeの総合シミュレーション順位で、使用率ではありません。順位を確認できない収録ポケモンには番号を付けません。2026年7月の公開環境記事で言及されたポケモンには「環境注目」を表示します。</p>
+      <p class="lead">外部通信なしで使える固定スナップショットです。表示される順位はPvPokeの総合シミュレーション順位で、使用率ではありません。順位を確認できない収録ポケモンには番号を付けません。2026年7月の公開環境記事で言及されたポケモンには「環境注目」を表示します。ポケモン画像はPokéAPIの外部スプライトを読み込み、取得できない場合は文字アイコンへ切り替わります。</p>
       <div id="dataMetrics" class="metric-row data-metrics"></div>
       <label class="search-control">名前・タイプ・技で検索<input id="dataSearch" type="search" placeholder="例：マリルリ / water / きんぞくおん" autocomplete="off" /></label>
       <div id="dataList" class="data-list"></div>
@@ -122,9 +122,9 @@
     <div class="build-grid">
       <label class="compact-control">プリセット<select id="buildPreset"><option value="rank1">耐久・SCPランク1</option><option value="attack">攻撃寄り</option><option value="cmp">CMP寄り</option><option value="custom">手入力</option></select></label>
       <label class="compact-control">レベル<input id="buildLevel" type="number" min="1" max="50" step="0.5" inputmode="decimal" /></label>
-      <label class="compact-control">攻撃IV<input id="buildAtkIv" type="number" min="0" max="15" step="1" inputmode="numeric" /></label>
-      <label class="compact-control">防御IV<input id="buildDefIv" type="number" min="0" max="15" step="1" inputmode="numeric" /></label>
-      <label class="compact-control">HP IV<input id="buildHpIv" type="number" min="0" max="15" step="1" inputmode="numeric" /></label>
+      <label class="compact-control">攻撃個体値<input id="buildAtkIv" type="number" min="0" max="15" step="1" inputmode="numeric" /></label>
+      <label class="compact-control">防御個体値<input id="buildDefIv" type="number" min="0" max="15" step="1" inputmode="numeric" /></label>
+      <label class="compact-control">HP個体値<input id="buildHpIv" type="number" min="0" max="15" step="1" inputmode="numeric" /></label>
       <label class="compact-control wide">通常技<select id="buildFast"></select></label>
       <label class="compact-control wide">ゲージ技1<select id="buildCharged1"></select></label>
       <label class="compact-control wide">ゲージ技2<select id="buildCharged2"></select></label>
@@ -134,7 +134,7 @@
     <p id="buildMessage" class="message" aria-live="polite"></p>
   </dialog>
 
-  <footer class="app-footer">PJCS training simulator v0.5 / 321 Pokémon embedded / IV & move editor</footer>
+  <footer class="app-footer">PJCS training simulator v0.6 / transparent selection analysis / sprite thumbnails</footer>
   <script src="embedded-data.js"></script>
   <script src="app.js" defer></script>
 </body>

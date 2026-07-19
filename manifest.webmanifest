@@ -1,10 +1,10 @@
 {
-  "name": "PJCS Training Lab v0.5",
+  "name": "PJCS Training Lab v0.6",
   "short_name": "PJCS Lab",
-  "start_url": "./index.html?v=5",
+  "start_url": "./index.html?v=6",
   "display": "standalone",
   "background_color": "#071225",
   "theme_color": "#0d1b34",
   "lang": "ja",
-  "description": "321体内蔵・個体値編集対応のPokémon GO SL/PJCS向け3対3自動対戦PWA"
+  "description": "321体内蔵・透明な選出分析・対面別アドバイス・画像表示対応のPokémon GO SL/PJCS向けPWA"
 }

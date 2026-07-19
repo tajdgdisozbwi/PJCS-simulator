@@ -67,3 +67,35 @@ button,input,select{font-size:16px}input[type="search"]{font-size:16px!important
 
 /* v0.5 final verification refinements */
 .coverage-row em small{display:block;margin-top:2px;font-size:.54rem;font-weight:700;opacity:.82}.coverage-row em{min-width:94px;text-align:center}.pokemon-rank{min-width:38px}.pokemon-dialog input,.pokemon-dialog select{font-size:16px!important}@supports (-webkit-touch-callout:none){input,select,textarea{font-size:16px!important}}
+
+
+/* v0.6 — transparent coaching, readable roster actions, sprite thumbnails */
+.roster-slot-card{grid-template-columns:32px 52px minmax(0,1fr);align-items:center;gap:9px}
+.roster-actions{grid-column:2/-1;display:grid;grid-template-columns:minmax(108px,1fr) minmax(72px,.65fr);gap:8px;width:100%;justify-content:stretch}
+.roster-actions button{width:100%;min-width:0;white-space:nowrap!important;writing-mode:horizontal-tb!important;text-orientation:mixed!important;word-break:keep-all!important;line-height:1.2}
+.change-pokemon{min-width:72px!important;white-space:nowrap!important;writing-mode:horizontal-tb!important}
+.pokemon-avatar{position:relative;display:grid;place-items:center;flex:0 0 auto;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 35% 28%,rgba(255,255,255,.26),transparent 28%),linear-gradient(145deg,#183d69,#081a34);border:1px solid rgba(119,196,255,.35);box-shadow:inset 0 0 0 3px rgba(255,255,255,.025),0 5px 14px rgba(0,0,0,.22)}
+.pokemon-avatar img{width:100%;height:100%;object-fit:contain;image-rendering:auto;filter:drop-shadow(0 4px 5px rgba(0,0,0,.35))}
+.avatar-fallback{display:grid;place-items:center;width:100%;height:100%;font-weight:900;color:#dff3ff;background:linear-gradient(145deg,#1d5c96,#0a2447)}
+.avatar-roster{width:52px;height:52px}.avatar-option{width:48px;height:48px}.avatar-pick{width:46px;height:46px}.avatar-data{width:48px;height:48px}
+.pick-card-title{display:flex;align-items:center;gap:8px;margin-bottom:7px;min-width:0}.pick-card-title>span:last-child{min-width:0}.pick-card-title strong,.pick-card-title small{display:block}.pick-card-title small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pokemon-option{grid-template-columns:38px 50px minmax(0,1fr) auto}
+.data-row{grid-template-columns:auto 50px minmax(0,1fr) auto}
+.recommendation-top{align-items:flex-start}.win-rate{text-align:right}.win-rate strong{display:block;color:#ffe57d;font-size:1.55rem}.win-rate small{display:block;color:var(--muted);font-size:.62rem;margin-top:2px}
+.simulation-basis{display:grid;gap:3px;margin:10px 0;padding:10px 12px;border:1px solid rgba(255,210,74,.28);border-radius:13px;background:rgba(255,210,74,.075)}.simulation-basis strong{font-size:.86rem;color:#fff0a9}.simulation-basis span{font-size:.7rem;line-height:1.5;color:var(--muted)}
+.coach-section{margin:10px 0;padding:11px 12px;border:1px solid rgba(85,183,255,.17);border-radius:14px;background:rgba(4,15,31,.43)}.coach-section h4{margin:0 0 8px;font-size:.78rem;color:#dff3ff}.coach-section ul{margin:0;padding-left:18px}.coach-section li{margin:5px 0;color:#d6e5f8;font-size:.74rem;line-height:1.55}.heavy-section{border-color:rgba(255,91,103,.28);background:rgba(255,91,103,.055)}
+.member-coverage-list{display:grid;gap:7px}.member-coverage{display:grid;grid-template-columns:minmax(74px,auto) 1fr;gap:7px;align-items:start}.member-coverage strong{font-size:.74rem;color:#8ed5ff}.member-coverage span{font-size:.72rem;line-height:1.5;color:#d6e5f8}
+.build-summary span{white-space:nowrap}
+@media(max-width:560px){
+  .roster-slot-card{grid-template-columns:28px 48px minmax(0,1fr);padding:10px 9px}
+  .avatar-roster{width:48px;height:48px}
+  .roster-actions{grid-column:2/-1;grid-template-columns:1fr 82px;justify-content:stretch}
+  .roster-actions button{min-height:40px;padding:8px 10px}
+  .pokemon-option{grid-template-columns:34px 44px minmax(0,1fr)}
+  .pokemon-option>.duplicate-label{grid-column:3}
+  .avatar-option{width:42px;height:42px}
+  .data-row{grid-template-columns:auto 44px minmax(0,1fr)}
+  .data-build{grid-column:3;text-align:left}
+  .avatar-data{width:42px;height:42px}
+  .member-coverage{grid-template-columns:1fr}.member-coverage strong{font-size:.76rem}
+}
