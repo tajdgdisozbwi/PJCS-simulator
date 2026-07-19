@@ -99,3 +99,5 @@ button,input,select{font-size:16px}input[type="search"]{font-size:16px!important
   .avatar-data{width:42px;height:42px}
   .member-coverage{grid-template-columns:1fr}.member-coverage strong{font-size:.76rem}
 }
+
+.avatar-fallback-solid{display:inline-flex!important;align-items:center;justify-content:center;background:linear-gradient(135deg,#ffde59,#ff595e);color:#fff;border-radius:999px;font-weight:800;width:100%;height:100%;font-size:inherit;}

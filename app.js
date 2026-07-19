@@ -335,10 +335,66 @@ function finishBattle(p,o,turn,log,reason){
 function escapeHtml(value){return String(value??"").replace(/[&<>'"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[ch]))}
 function moveLabel(p){const fast=FAST_MOVES[p.fast]?.name||p.fast;const charged=(p.charged||[]).map(id=>CHARGED_MOVES[id]?.name||id).join(" / ");return `${fast} / ${charged}`}
 function typeChips(types){return (types||[]).map(t=>`<span class="type-chip type-${escapeHtml(t)}">${escapeHtml(typeName(t))}</span>`).join("")}
-function spriteUrl(p){const dex=Math.max(1,Math.trunc(Number(p?.dex)||0));return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${dex}.png`}
+const SPECIAL_SPRITE_SLUGS={
+  ninetales_alola:"ninetales-alola",
+  gastrodon_east_sea:"gastrodon-east",
+  gastrodon_west_sea:"gastrodon-west",
+  dudunsparce_two:"dudunsparce",
+  sandslash_alola:"sandslash-alola",
+  raichu_alola:"raichu-alola",
+  electrode_hisuian:"electrode-hisui",
+  deoxys_defense:"deoxys-defense",
+  morpeko_full_belly:"morpeko",
+  typhlosion_hisuian:"typhlosion-hisui",
+  castform_rainy:"castform-rainy",
+  castform_sunny:"castform-sunny",
+  castform_snowy:"castform-snowy",
+  muk_alola:"muk-alola",
+  marowak_alola:"marowak-alola",
+  samurott_hisuian:"samurott-hisui",
+  aegislash_shield:"aegislash-shield",
+  jellicent_female:"jellicent-f",
+  stunfisk_galarian:"stunfisk-galar",
+  darmanitan_zen:"darmanitan-zen",
+  pyroar_female:"pyroar-f",
+  darmanitan_standard:"darmanitan",
+  gourgeist_super:"gourgeist-super",
+  gourgeist_large:"gourgeist-large",
+  gourgeist_average:"gourgeist",
+  gourgeist_small:"gourgeist-small",
+  eternatus_eternamax:"eternatus-eternamax",
+  golem_alola:"golem-alola",
+  slowking_galarian:"slowking-galar",
+  zygarde_complete:"zygarde-complete",
+  moltres_galarian:"moltres-galar",
+  graveler_golem_alola:"graveler-alola",
+  calyrex_ice_rider:"calyrex-ice",
+  meowstic_female:"meowstic-f",
+  meloetta_aria:"meloetta-aria",
+  urshifu_single_strike:"urshifu",
+  geodude_graveler_alola:"geodude-alola",
+  eiscue_ice:"eiscue",
+  slowbro_galarian:"slowbro-galar",
+  zygarde_fifty_percent:"zygarde-50",
+  zygarde_complete_fifty_percent:"zygarde-complete",
+  slowpoke_slowbro_galarian:"slowpoke-galar"
+};
+const SPECIAL_SPRITE_FALLBACK_ONLY=new Set([
+  "dunsparce_dudunsparce_two","dudunsparce_three","snorlax_wildarea_2024","ho_oh_s","mewtwo_a","raikou_s","latias_s"
+]);
+function normalizedSpriteKey(p){return String(p?.speciesId||p?.id||"").replace(/_shadow$/,'')}
+function spriteUrl(p){
+  const key=normalizedSpriteKey(p);
+  if(SPECIAL_SPRITE_FALLBACK_ONLY.has(key))return "";
+  if(SPECIAL_SPRITE_SLUGS[key])return `https://play.pokemonshowdown.com/sprites/gen5/${SPECIAL_SPRITE_SLUGS[key]}.png`;
+  const dex=Math.max(1,Math.trunc(Number(p?.dex)||0));
+  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${dex}.png`;
+}
 function pokemonAvatar(p,size="normal"){
   const initial=escapeHtml(String(p?.name||"?").replace(/[（(].*/,"").slice(0,1)||"?");
-  return `<span class="pokemon-avatar avatar-${escapeHtml(size)}"><img src="${spriteUrl(p)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="avatar-fallback" hidden aria-hidden="true">${initial}</span></span>`;
+  const url=spriteUrl(p);
+  if(!url)return `<span class="pokemon-avatar avatar-${escapeHtml(size)}"><span class="avatar-fallback avatar-fallback-solid" aria-hidden="true">${initial}</span></span>`;
+  return `<span class="pokemon-avatar avatar-${escapeHtml(size)}"><img src="${url}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="avatar-fallback avatar-fallback-solid" hidden aria-hidden="true">${initial}</span></span>`;
 }
 
 function rosterCard(side,index,id){
