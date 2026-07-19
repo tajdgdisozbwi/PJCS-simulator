@@ -124,3 +124,17 @@ button,input,select{font-size:16px}input[type="search"]{font-size:16px!important
 .lineup-hidden{border-style:dashed;color:var(--muted)}
 .ai-coverage{margin-top:11px}
 @media(max-width:560px){.tabs{grid-template-columns:repeat(3,1fr)}.ai-lineup{grid-template-columns:1fr}.ai-lineup-mon{grid-template-columns:auto minmax(0,1fr)}.ai-targets>div{grid-template-columns:1fr}.ai-targets>div>span{text-align:left}.selection-columns{grid-template-columns:1fr}}
+
+
+/* v0.7.1 selection usability and repeat battles */
+.selection-roster-columns{align-items:start}
+.selection-team-card{min-width:0}
+.selection-helper{margin:-2px 0 10px;color:var(--muted);font-size:.72rem;line-height:1.5}
+.selection-scroll{display:flex!important;grid-template-columns:none!important;gap:10px;overflow-x:auto;overflow-y:hidden;padding:2px 2px 12px;scroll-snap-type:x proximity;scroll-padding-inline:2px;-webkit-overflow-scrolling:touch;overscroll-behavior-inline:contain;touch-action:pan-x pan-y;scrollbar-width:thin}
+.selection-scroll::-webkit-scrollbar{height:8px}.selection-scroll::-webkit-scrollbar-thumb{background:rgba(96,165,250,.45);border-radius:999px}.selection-scroll::-webkit-scrollbar-track{background:rgba(15,23,42,.5);border-radius:999px}
+.selection-scroll .pick-card,.selection-scroll .public-pick-card{flex:0 0 min(76vw,240px);width:min(76vw,240px);scroll-snap-align:start;min-height:134px}
+.public-pick-card{position:relative;text-align:left;border:1px solid var(--border);border-radius:14px;background:#0f172a;color:var(--text);padding:10px}
+.public-pick-card strong{display:block;margin-bottom:4px}.public-pick-card small{display:block;color:var(--muted);line-height:1.35}
+.opponent-public-card{border-color:rgba(245,158,11,.32)}
+#opponentAiPanel{margin-top:12px}
+@media(min-width:760px){.selection-scroll .pick-card,.selection-scroll .public-pick-card{flex-basis:250px;width:250px}.selection-roster-columns{grid-template-columns:1fr 1fr}}

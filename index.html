@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="PJCS Sim" />
-  <title>PJCS Pokémon GO Simulator v0.7</title>
+  <title>PJCS Pokémon GO Simulator v0.7.1</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -61,13 +61,21 @@
         <div><span class="muted">相手AI</span><strong id="opponentSelectionSummary">6体を分析中</strong></div>
       </div>
       <p class="lead selection-rule">相手AIは、公開されたあなたの6体と技・個体値だけを参照します。あなたが今選んでいる3体は見ません。相手の3体は、あなたが選出を確定するまで非公開です。</p>
-      <div class="two-column selection-columns">
-        <section class="team-card"><div class="team-card-header"><h3>あなた</h3><span class="mini-status">タップ順＝先発→控え</span></div><div id="playerSelection" class="pick-grid"></div></section>
-        <section id="opponentAiPanel" class="team-card opponent-ai-panel" aria-live="polite">
-          <div class="team-card-header"><h3>相手AI</h3><span id="opponentAiStatus" class="mini-status">6体を分析中</span></div>
-          <div id="opponentAiContent" class="opponent-ai-content"><p class="muted">相手の60通りを比較しています。</p></div>
+      <div class="two-column selection-columns selection-roster-columns">
+        <section class="team-card selection-team-card">
+          <div class="team-card-header"><h3>あなたの6体</h3><span class="mini-status">横にスワイプ・タップ順＝先発→控え</span></div>
+          <div id="playerSelection" class="pick-grid selection-scroll" aria-label="あなたの6体から3体を選択"></div>
+        </section>
+        <section class="team-card selection-team-card opponent-public-card">
+          <div class="team-card-header"><h3>相手の公開6体</h3><span class="mini-status">横にスワイプ</span></div>
+          <p class="selection-helper">相手AIの3体は非公開ですが、見せ合いの6体は確認できます。</p>
+          <div id="opponentSelectionPreview" class="public-pick-grid selection-scroll" aria-label="相手の公開6体"></div>
         </section>
       </div>
+      <section id="opponentAiPanel" class="team-card opponent-ai-panel" aria-live="polite">
+        <div class="team-card-header"><h3>相手AIの選出状況</h3><span id="opponentAiStatus" class="mini-status">6体を分析中</span></div>
+        <div id="opponentAiContent" class="opponent-ai-content"><p class="muted">相手の60通りを比較しています。</p></div>
+      </section>
       <div class="button-row"><button id="startTimer" class="secondary-button" type="button">90秒開始</button><button id="clearPicks" class="ghost-button" type="button">自分の選出を解除</button><button id="confirmPicks" class="primary-button" type="button">自分の選出を確定して公開</button></div>
       <p id="selectionMessage" class="message" aria-live="polite"></p>
     </section>
@@ -83,7 +91,7 @@
         <div class="current-lineup"><div><span>あなた</span><div id="battlePlayerLineup" class="lineup-pills"></div></div><div><span>相手AI</span><div id="battleOpponentLineup" class="lineup-pills"></div></div></div>
       </section>
       <section id="opponentBattleReason" class="opponent-battle-reason" hidden aria-live="polite"></section>
-      <div class="button-row three"><button id="runBattle" class="primary-button" type="button">1試合を自動対戦</button><button id="runBatch" class="secondary-button" type="button">100試合で勝率分析</button><button id="analyzeSelections" class="spark-button" type="button">✨ 勝てる選出を探す</button></div>
+      <div class="button-row three"><button id="runBattle" class="primary-button" type="button">第1試合を自動対戦</button><button id="runBatch" class="secondary-button" type="button">100試合で勝率分析</button><button id="analyzeSelections" class="spark-button" type="button">✨ 勝てる選出を探す</button></div>
       <section id="battleResult" class="result-card" aria-live="polite"><p>選出を確定すると自動対戦できます。</p></section>
       <section id="recommendationPanel" class="recommendation-panel" hidden aria-live="polite"></section>
       <details class="log-card"><summary>技タイミング付きログを見る</summary><ol id="battleLog" class="battle-log"></ol></details>
@@ -139,7 +147,7 @@
     <p id="buildMessage" class="message" aria-live="polite"></p>
   </dialog>
 
-  <footer class="app-footer">PJCS training simulator v0.7 / transparent selection analysis / sprite thumbnails</footer>
+  <footer class="app-footer">PJCS training simulator v0.7.1 / transparent selection analysis / sprite thumbnails</footer>
   <script src="embedded-data.js"></script>
   <script src="app.js" defer></script>
 </body>
