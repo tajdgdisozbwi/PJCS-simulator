@@ -1,7 +1,7 @@
 "use strict";
 
-const STORAGE_KEY = "pjcs-simulator-v07";
-const OLD_STORAGE_KEYS = ["pjcs-simulator-v06","pjcs-simulator-v05","pjcs-simulator-v04","pjcs-simulator-v03","pjcs-simulator-v02"];
+const STORAGE_KEY = "pjcs-simulator-v08";
+const OLD_STORAGE_KEYS = [];
 const TURN_MS = 500;
 const SWITCH_COOLDOWN_TURNS = 90;
 const MAX_TURNS = 540;
@@ -52,8 +52,82 @@ let DATA_INFO = {
 };
 let japaneseNamesByEnglish = new Map();
 
-const PLAYER_DEFAULT = ["lickilicky","altaria","empoleon","quagsire_shadow","jumpluff","forretress_shadow"].filter(id=>POKEMON[id]);
-const OPPONENT_DEFAULT = ["tinkaton","ninetales_shadow","corviknight","feraligatr","clodsire","sableye"].filter(id=>POKEMON[id]);
+const PLAYER_DEFAULT = [];
+
+// 2026-07-19 snapshot. PvPoke rank is performance simulation, not literal usage %.
+// Recent-source tags are kept separately so the UI never invents a usage percentage.
+const CURRENT_META = {
+  lickilicky:{rank:2,score:93.7,sources:["PvPoke 2026-07-19","2026実戦データ"]},
+  tinkaton:{rank:3,score:92.6,sources:["PvPoke 2026-07-19"]},
+  altaria:{rank:4,score:92.2,sources:["PvPoke 2026-07-19","2026実戦データ"]},
+  empoleon:{rank:5,score:92.2,sources:["PvPoke 2026-07-19","2026実戦データ"]},
+  empoleon_shadow:{rank:7,score:91.9,sources:["PvPoke 2026-07-19"]},
+  quagsire_shadow:{rank:8,score:91.8,sources:["PvPoke 2026-07-19","2026実戦データ"]},
+  quagsire:{rank:9,score:91.7,sources:["PvPoke 2026-07-19"]},
+  jellicent:{rank:10,score:91.6,sources:["PvPoke 2026-07-19","2026実戦データ"]},
+  forretress:{rank:11,score:91.5,sources:["PvPoke 2026-07-19","2026実戦データ"]},
+  ninetales:{rank:12,score:91.5,sources:["PvPoke 2026-07-19"]},
+  ninetales_shadow:{rank:13,score:91.1,sources:["PvPoke 2026-07-19"]},
+  feraligatr:{rank:14,score:91.0,sources:["PvPoke 2026-07-19"]},
+  forretress_shadow:{rank:15,score:91.0,sources:["PvPoke 2026-07-19"]},
+  jumpluff:{rank:17,score:90.9,sources:["PvPoke 2026-07-19"]},
+  clodsire:{rank:18,score:90.8,sources:["PvPoke 2026-07-19"]},
+  corviknight:{rank:19,score:90.8,sources:["PvPoke 2026-07-19","2026実戦データ"]},
+  fearow:{rank:20,score:90.7,sources:["PvPoke 2026-07-19"]},
+  azumarill:{rank:21,score:90.6,sources:["PvPoke 2026-07-19"]},
+  guzzlord:{rank:24,score:90.5,sources:["PvPoke 2026-07-19","2026実戦データ"]},
+  lapras:{rank:25,score:90.4,sources:["PvPoke 2026-07-19"]},
+  furret:{rank:27,score:90.3,sources:["PvPoke 2026-07-19"]},
+  seismitoad:{rank:31,score:90.2,sources:["PvPoke 2026-07-19"]},
+  umbreon:{rank:32,score:90.2,sources:["PvPoke 2026-07-19"]},
+  medicham:{rank:33,score:90.1,sources:["PvPoke 2026-07-19"]},
+  talonflame:{rank:34,score:90.1,sources:["PvPoke 2026-07-19"]},
+  dragonair_dragonite_normal:{rank:35,score:90.0,sources:["PvPoke 2026-07-19"]},
+  greedent:{rank:39,score:89.7,sources:["PvPoke 2026-07-19"]},
+  diggersby:{rank:41,score:89.6,sources:["PvPoke 2026-07-19"]},
+  dusclops_dusknoir_normal:{rank:42,score:89.6,sources:["PvPoke 2026-07-19"]},
+  cradily:{rank:44,score:89.5,sources:["PvPoke 2026-07-19","2026実戦データ"]},
+  wigglytuff:{rank:48,score:89.5,sources:["PvPoke 2026-07-19","2026実戦データ"]},
+  clefable:{rank:52,score:89.3,sources:["PvPoke 2026-07-19"]},
+  mantine:{rank:53,score:89.3,sources:["PvPoke 2026-07-19"]},
+  mandibuzz:{rank:55,score:89.2,sources:["PvPoke 2026-07-19"]},
+  dewgong:{rank:56,score:89.1,sources:["PvPoke 2026-07-19"]},
+  gastrodon:{rank:57,score:89.1,sources:["PvPoke 2026-07-19"]},
+  malamar:{rank:58,score:89.1,sources:["PvPoke 2026-07-19","2026実戦データ"]},
+  drapion_shadow:{rank:60,score:89.0,sources:["PvPoke 2026-07-19","2026実戦データ"]},
+  charjabug:{rank:61,score:88.9,sources:["PvPoke 2026-07-19","2026実戦データ"]},
+  swampert:{rank:62,score:88.8,sources:["PvPoke 2026-07-19","2026実戦データ"]},
+  bastiodon:{rank:64,score:88.7,sources:["PvPoke 2026-07-19"]},
+  stunfisk_galarian:{rank:67,score:88.5,sources:["PvPoke 2026-07-19"]},
+  registeel:{rank:68,score:88.4,sources:["PvPoke 2026-07-19"]},
+  stunfisk:{rank:69,score:88.4,sources:["PvPoke 2026-07-19","GameWith 2026-07-17"]},
+  pelipper:{rank:75,score:88.1,sources:["PvPoke 2026-07-19"]},
+  toxapex:{rank:97,score:87.2,sources:["PvPoke 2026-07-19"]},
+  miltank:{rank:100,score:87.0,sources:["PvPoke 2026-07-19"]},
+  annihilape:{rank:146,score:85.5,sources:["PvPoke 2026-07-19","GameWith 2026-07-17"]}
+};
+
+const META_BENCHMARK = [
+  "lickilicky","tinkaton","altaria","empoleon","quagsire_shadow","jellicent","forretress","ninetales_shadow",
+  "feraligatr","jumpluff","clodsire","corviknight","fearow","azumarill","guzzlord","lapras","cradily","stunfisk"
+].filter(id=>POKEMON[id]);
+
+const SAFE_SWAP_POOL = new Set(["lickilicky","jellicent","clodsire","corviknight","cradily","umbreon","dunsparce_dudunsparce_two","stunfisk","furret","malamar"]);
+const CLOSER_POOL = new Set(["empoleon","empoleon_shadow","ninetales_shadow","feraligatr","quagsire_shadow","talonflame","stunfisk","azumarill","guzzlord","cradily"]);
+const PRESSURE_POOL = new Set(["altaria","tinkaton","forretress","forretress_shadow","jumpluff","fearow","annihilape","malamar","corviknight"]);
+
+const OPPONENT_ARCHETYPES = [
+  ["altaria","empoleon","lickilicky","quagsire_shadow","jumpluff","forretress_shadow"],
+  ["tinkaton","jellicent","ninetales_shadow","clodsire","corviknight","feraligatr"],
+  ["altaria","empoleon","cradily","malamar","forretress","quagsire_shadow"],
+  ["lickilicky","tinkaton","jellicent","jumpluff","ninetales_shadow","clodsire"],
+  ["annihilape","stunfisk","furret","corviknight","azumarill","cradily"],
+  ["fearow","quagsire_shadow","lickilicky","empoleon","jumpluff","ninetales_shadow"],
+  ["guzzlord","corviknight","jellicent","tinkaton","cradily","feraligatr"],
+  ["malamar","forretress","lickilicky","clodsire","altaria","empoleon"],
+  ["stunfisk","annihilape","lickilicky","jumpluff","corviknight","quagsire_shadow"],
+  ["cradily","empoleon","altaria","jellicent","ninetales_shadow","tinkaton"]
+].map(team=>team.filter(id=>POKEMON[id])).filter(team=>team.length===6);
 
 function clone(value){ return JSON.parse(JSON.stringify(value)); }
 function clamp(v,min,max){ return Math.max(min,Math.min(max,v)); }
@@ -92,11 +166,11 @@ function localizedSpeciesName(p){
 }
 
 function defaultState(){
-  return {playerRoster:[...PLAYER_DEFAULT],opponentRoster:[...OPPONENT_DEFAULT],playerBuilds:Array(6).fill(null),opponentBuilds:Array(6).fill(null),playerPicks:[],opponentPicks:[],opponentSelectionMeta:null,opponentRevealed:false,format:3,playerScore:0,opponentScore:0,gameNumber:1,history:[],lastBattle:null,lastRecommendations:null,quickBattleNumber:0};
+  return {playerRoster:Array(6).fill(null),opponentRoster:[],playerBuilds:Array(6).fill(null),opponentBuilds:Array(6).fill(null),playerPicks:[],opponentPicks:[],opponentSelectionMeta:null,opponentRevealed:false,opponentPartySeed:(Date.now()>>>0),opponentPartyMeta:null,format:3,playerScore:0,opponentScore:0,gameNumber:1,history:[],lastBattle:null,lastRecommendations:null,quickBattleNumber:0};
 }
 function loadState(){
   try{
-    const raw=localStorage.getItem(STORAGE_KEY) || OLD_STORAGE_KEYS.map(k=>localStorage.getItem(k)).find(Boolean);
+    const raw=localStorage.getItem(STORAGE_KEY);
     const parsed=raw?JSON.parse(raw):null;
     return parsed?{...defaultState(),...parsed}:defaultState();
   }catch{return defaultState();}
@@ -168,26 +242,121 @@ function effectivePokemon(side,index){
   if(!p)return null;
   return {...p,...buildForSlot(side,index),id};
 }
-function repairStateRosters(){
-  const available=META_ORDER.length?META_ORDER:Object.keys(POKEMON);
-  const repair=(current,defaults)=>{
-    const result=[];
-    for(const id of [...(current||[]),...defaults,...available]){
-      if(!POKEMON[id])continue;
-      if(result.some(x=>POKEMON[x]?.dex===POKEMON[id]?.dex))continue;
-      result.push(id);if(result.length===6)break;
+function applyCurrentMetaSnapshot(){
+  for(const [id,meta] of Object.entries(CURRENT_META)){
+    if(!POKEMON[id])continue;
+    POKEMON[id].rank=meta.rank;
+    POKEMON[id].metaScore=meta.score;
+    POKEMON[id].metaFeatured=true;
+    POKEMON[id].metaSources=[...meta.sources];
+    POKEMON[id].metaIndex=(110-meta.rank)*1.25+meta.score;
+  }
+  META_ORDER=[...Object.keys(POKEMON)].sort((a,b)=>{
+    const pa=POKEMON[a],pb=POKEMON[b];
+    return (pb.metaIndex||0)-(pa.metaIndex||0)||(pa.rank||9999)-(pb.rank||9999)||pa.name.localeCompare(pb.name,"ja");
+  });
+}
+function pokemonWeaknesses(p){
+  const out=[];
+  for(const type of Object.keys(TYPE_JP))if(effectiveness(type,p.types)>1.01)out.push(type);
+  return out;
+}
+function pokemonAttackTypes(p){
+  const types=new Set();
+  const fast=FAST_MOVES[p.fast];if(fast)types.add(fast.type);
+  for(const id of p.charged||[]){const move=CHARGED_MOVES[id];if(move)types.add(move.type)}
+  return [...types];
+}
+const META_DUEL_CACHE=new Map();
+function genericMetaDuel(aId,bId){
+  const key=`${aId}|${bId}|9`;if(META_DUEL_CACHE.has(key))return META_DUEL_CACHE.get(key);
+  const outcomes=[];
+  for(const aShields of [0,1,2])for(const bShields of [0,1,2]){
+    const seed=stringHash(`meta|${key}|${aShields}|${bShields}`);
+    const result=simulateBattle([aId],[0],[bId],[0],seed,"balanced",false,[null],[null],{playerShields:aShields,opponentShields:bShields});
+    outcomes.push({playerShields:aShields,opponentShields:bShields,winner:result.winner,margin:clamp(result.player.hp-result.opponent.hp,-1,1)});
+  }
+  const summary=summarizeDuel(outcomes,"player");META_DUEL_CACHE.set(key,summary);return summary;
+}
+function teamMetaScore(team){
+  const valid=team.filter(id=>POKEMON[id]);if(valid.length!==6)return -Infinity;
+  const dexes=valid.map(id=>POKEMON[id].dex);if(new Set(dexes).size!==6)return -Infinity;
+  let score=0;
+  for(const id of valid){
+    const p=POKEMON[id],meta=CURRENT_META[id];
+    score+=(meta?.score||84)*1.15+Math.max(0,55-(meta?.rank||120))*.18;
+  }
+  // Actual 9-shield coverage against a current benchmark.
+  for(const target of META_BENCHMARK){
+    const duels=valid.map(id=>genericMetaDuel(id,target)).sort((a,b)=>b.score-a.score);
+    const answers=duels.filter(duelIsStrong).length;
+    score+=duels[0].score*5+Math.min(answers,2)*2.8;
+    if(!answers)score-=8;
+  }
+  // Weakness overlap and move diversity.
+  const weaknessCounts={};const attackTypes=new Set();const ownTypes=new Set();
+  for(const id of valid){
+    const p=POKEMON[id];p.types.forEach(t=>ownTypes.add(t));pokemonAttackTypes(p).forEach(t=>attackTypes.add(t));
+    pokemonWeaknesses(p).forEach(t=>weaknessCounts[t]=(weaknessCounts[t]||0)+1);
+  }
+  score+=attackTypes.size*1.2+ownTypes.size*.65;
+  for(const count of Object.values(weaknessCounts)){if(count>=4)score-=(count-3)*7;else if(count===3)score-=2.5}
+  const safe=valid.filter(id=>SAFE_SWAP_POOL.has(id)).length,closer=valid.filter(id=>CLOSER_POOL.has(id)).length,pressure=valid.filter(id=>PRESSURE_POOL.has(id)).length;
+  score+=Math.min(safe,2)*4+Math.min(closer,3)*2.3+Math.min(pressure,3)*1.8;
+  if(!safe)score-=10;if(!closer)score-=7;
+  return score;
+}
+function candidateOpponentTeams(seed){
+  const rng=mulberry32(seed>>>0),candidates=[];
+  const flex=["lickilicky","tinkaton","altaria","empoleon","quagsire_shadow","jellicent","forretress","ninetales_shadow","feraligatr","jumpluff","clodsire","corviknight","fearow","azumarill","guzzlord","lapras","cradily","stunfisk","malamar","annihilape","furret"].filter(id=>POKEMON[id]);
+  for(const base of OPPONENT_ARCHETYPES){
+    candidates.push([...base]);
+    for(let n=0;n<4;n++){
+      const team=[...base],replaceIndex=Math.floor(rng()*6);
+      const shuffled=[...flex].sort(()=>rng()-.5);
+      for(const id of shuffled){
+        if(team.includes(id))continue;
+        if(team.some(x=>POKEMON[x]?.dex===POKEMON[id]?.dex))continue;
+        team[replaceIndex]=id;break;
+      }
+      candidates.push(team);
     }
-    return result;
-  };
-  state.playerRoster=repair(state.playerRoster,PLAYER_DEFAULT);
-  state.opponentRoster=repair(state.opponentRoster,OPPONENT_DEFAULT);
+  }
+  const seen=new Set();return candidates.filter(team=>{const key=[...team].sort().join("|");if(seen.has(key))return false;seen.add(key);return true});
+}
+function opponentPartyExplanation(team,score){
+  const safe=team.filter(id=>SAFE_SWAP_POOL.has(id)).map(id=>POKEMON[id].name);
+  const closer=team.filter(id=>CLOSER_POOL.has(id)).map(id=>POKEMON[id].name);
+  const pressure=team.filter(id=>PRESSURE_POOL.has(id)).map(id=>POKEMON[id].name);
+  const covered=META_BENCHMARK.filter(target=>team.some(id=>duelIsStrong(genericMetaDuel(id,target))));
+  const weak=META_BENCHMARK.filter(target=>!team.some(id=>duelIsStrong(genericMetaDuel(id,target))));
+  return {score,coverage:`基準メタ${covered.length}/${META_BENCHMARK.length}体に、9シールド条件で明確な回答あり`,safe:safe.length?`引き先候補：${safe.slice(0,3).join("・")}`:"明確な引き先候補なし",closer:closer.length?`締め役候補：${closer.slice(0,3).join("・")}`:"締め役候補なし",pressure:pressure.length?`対面圧力：${pressure.slice(0,3).join("・")}`:"",weak:weak.map(id=>POKEMON[id].name)};
+}
+function generateStrongOpponentRoster(forceDifferent=false){
+  let seed=(Number(state.opponentPartySeed)||Date.now())>>>0;
+  if(forceDifferent)seed=(seed+0x9E3779B9)>>>0;
+  const oldKey=(state.opponentRoster||[]).join("|");
+  let ranked=candidateOpponentTeams(seed).map(team=>({team,score:teamMetaScore(team)})).sort((a,b)=>b.score-a.score);
+  if(forceDifferent)ranked=ranked.filter(x=>x.team.join("|")!==oldKey).concat(ranked.filter(x=>x.team.join("|")===oldKey));
+  const top=ranked.slice(0,Math.min(5,ranked.length));
+  const pick=top[Math.floor(mulberry32(seed^0xA5A5A5A5)()*top.length)]||ranked[0];
+  state.opponentPartySeed=seed;state.opponentRoster=[...pick.team];state.opponentBuilds=Array(6).fill(null);
+  state.opponentPartyMeta={version:8,generatedAt:Date.now(),...opponentPartyExplanation(pick.team,pick.score),sources:["PvPoke 2026-07-19","GameWith 2026-07-17","GO Battle Log設計"]};
+  state.opponentPicks=[];state.opponentSelectionMeta=null;state.opponentRevealed=false;state.lastRecommendations=null;state.quickBattleNumber=0;
+  clearAnalysisCaches();
+}
+function repairStateRosters(){
+  const player=Array.from({length:6},(_,i)=>POKEMON[state.playerRoster?.[i]]?state.playerRoster[i]:null);
+  const seenDex=new Set();
+  state.playerRoster=player.map(id=>{if(!id)return null;const dex=POKEMON[id].dex;if(seenDex.has(dex))return null;seenDex.add(dex);return id});
+  if(!Array.isArray(state.opponentRoster)||state.opponentRoster.length!==6||state.opponentRoster.some(id=>!POKEMON[id]))generateStrongOpponentRoster(false);
   state.playerBuilds=Array.from({length:6},(_,i)=>state.playerBuilds?.[i]||null);
   state.opponentBuilds=Array.from({length:6},(_,i)=>state.opponentBuilds?.[i]||null);
-  state.playerPicks=(state.playerPicks||[]).filter(i=>i>=0&&i<6).slice(0,3);
+  state.playerPicks=(state.playerPicks||[]).filter(i=>i>=0&&i<6&&state.playerRoster[i]).slice(0,3);
   state.opponentPicks=(state.opponentPicks||[]).filter(i=>i>=0&&i<6).slice(0,3);
   state.opponentRevealed=Boolean(state.opponentRevealed);
   state.quickBattleNumber=Math.max(0,Math.trunc(Number(state.quickBattleNumber)||0));
-  if(!state.opponentSelectionMeta||state.opponentSelectionMeta.version!==7)state.opponentSelectionMeta=null;
+  if(!state.opponentSelectionMeta||state.opponentSelectionMeta.version!==8)state.opponentSelectionMeta=null;
   saveState();
 }
 function hydrateEmbeddedData(){
@@ -195,10 +364,11 @@ function hydrateEmbeddedData(){
   CHARGED_MOVES=structuredClone(EMBEDDED.charged);
   POKEMON=structuredClone(EMBEDDED.pokemon);
   META_ORDER=[...EMBEDDED.order].filter(id=>POKEMON[id]);
+  applyCurrentMetaSnapshot();
   DATA_INFO={source:EMBEDDED.source,count:META_ORDER.length,loaded:true,updatedAt:EMBEDDED.updatedAt,diagnostics:EMBEDDED.diagnostics};
   repairStateRosters();
   const when=new Date(DATA_INFO.updatedAt).toLocaleDateString("ja-JP");
-  setDataBanner("内蔵SLデータを読み込みました",`${DATA_INFO.count}体・技 ${DATA_INFO.diagnostics.moveCountFast+DATA_INFO.diagnostics.moveCountCharged}種・更新 ${when}`,"ready");
+  setDataBanner("SLメタ統合データを読み込みました",`${DATA_INFO.count}体・技 ${DATA_INFO.diagnostics.moveCountFast+DATA_INFO.diagnostics.moveCountCharged}種・メタ基準 2026/7/19`,"ready");
 }
 
 function effectiveness(type,defTypes){return defTypes.reduce((m,t)=>{if(IMMUNE[type]?.includes(t))return m*0.390625;if(SUPER[type]?.includes(t))return m*1.6;if(RESIST[type]?.includes(t))return m*0.625;return m},1)}
@@ -402,42 +572,51 @@ function pokemonAvatar(p,size="normal"){
 }
 
 function rosterCard(side,index,id){
-  const p=POKEMON[id],b=buildForSlot(side,index),card=document.createElement("article");card.className="roster-slot-card";
-  if(!p||!b){card.textContent="データなし";return card;}
+  const card=document.createElement("article");card.className="roster-slot-card";
+  if(!id||!POKEMON[id]){
+    card.classList.add("empty-roster-slot");
+    card.innerHTML=`<span class="slot-number">${index+1}</span><div class="empty-slot-icon">＋</div><div class="roster-main"><strong>未選択</strong><small>ここを押してポケモンを登録</small></div><button class="change-pokemon primary-button" data-side="player" data-index="${index}" type="button">選ぶ</button>`;
+    return card;
+  }
+  const p=POKEMON[id],b=buildForSlot(side,index);
   if(!b.valid)card.classList.add("invalid-build");
+  const sourceText=(p.metaSources||[]).slice(0,2).join(" / ");
   card.innerHTML=`
     <span class="slot-number">${index+1}</span>
     ${pokemonAvatar(p,"roster")}
     <div class="roster-main">
       <div class="roster-title"><strong>${escapeHtml(p.name)}</strong><span class="cp-chip">CP ${b.cp}</span></div>
-      <div class="type-row">${typeChips(p.types)}${p.rank?`<span class="rank-chip">PvPoke #${p.rank}</span>`:""}${p.metaFeatured?'<span class="meta-chip">環境注目</span>':""}</div>
+      <div class="type-row">${typeChips(p.types)}${p.rank?`<span class="rank-chip">PvPoke #${p.rank}</span>`:""}${p.metaFeatured?'<span class="meta-chip">現環境候補</span>':""}</div>
       <div class="build-summary"><span>Lv ${b.level}</span><span>個体値 ${b.atkIV}/${b.defIV}/${b.hpIV}</span><span>攻撃 ${b.atk.toFixed(1)}</span><span>防御 ${b.def.toFixed(1)}</span><span>HP ${b.hp}</span></div>
       <small class="roster-moves">${escapeHtml(moveLabel({...p,...b}))}</small>
+      ${side==="opponent"&&sourceText?`<small class="meta-source-mini">${escapeHtml(sourceText)}</small>`:""}
     </div>
-    <div class="roster-actions"><button class="build-pokemon secondary-button" data-side="${side}" data-index="${index}" type="button">個体・技</button><button class="change-pokemon ghost-button" data-side="${side}" data-index="${index}" type="button">変更</button></div>`;
+    ${side==="player"?`<div class="roster-actions"><button class="build-pokemon secondary-button" data-side="${side}" data-index="${index}" type="button">個体・技</button><button class="change-pokemon ghost-button" data-side="${side}" data-index="${index}" type="button">変更</button></div>`:'<span class="ai-lock-chip">AI選出対象</span>'}`;
   return card;
 }
 function renderRosters(){
-  document.getElementById("playerRoster").replaceChildren(...state.playerRoster.map((id,i)=>rosterCard("player",i,id)));
-  document.getElementById("opponentRoster").replaceChildren(...state.opponentRoster.map((id,i)=>rosterCard("opponent",i,id)));
-  document.getElementById("playerReady").textContent=`${state.playerRoster.length} / 6`;
-  document.getElementById("opponentReady").textContent=`${state.opponentRoster.length} / 6`;
+  document.getElementById("playerRoster").replaceChildren(...Array.from({length:6},(_,i)=>rosterCard("player",i,state.playerRoster[i])));
+  document.getElementById("opponentRoster").replaceChildren(...Array.from({length:6},(_,i)=>rosterCard("opponent",i,state.opponentRoster[i])));
+  document.getElementById("playerReady").textContent=`${state.playerRoster.filter(Boolean).length} / 6`;
+  document.getElementById("opponentReady").textContent="AI自動生成";
+  const info=document.getElementById("opponentGenerationInfo");
+  if(info&&state.opponentPartyMeta){const m=state.opponentPartyMeta;info.innerHTML=`<strong>今回の相手6体</strong><span>${escapeHtml(m.coverage)}</span><span>${escapeHtml(m.safe)} / ${escapeHtml(m.closer)}</span>${m.weak?.length?`<span>残る注意対象：${escapeHtml(m.weak.join("・"))}</span>`:"<span>基準メタに明確な穴なし</span>"}`}
   const chip=document.getElementById("poolChip");if(chip)chip.textContent=`${DATA_INFO.count}体`;
 }
 function validateRosters(){
-  for(const roster of [state.playerRoster,state.opponentRoster]){
-    if(roster.length!==6||roster.some(id=>!POKEMON[id]))return "6体すべてを登録してください。";
-    const dexes=roster.map(id=>POKEMON[id].dex);
-    if(new Set(dexes).size!==6)return "同じポケモン（フォルム・シャドウ違いを含む）は同じ6体に複数登録できません。";
-  }
+  if(state.playerRoster.length!==6||state.playerRoster.some(id=>!POKEMON[id]))return "あなたの6体をすべて登録してください。";
+  const dexes=state.playerRoster.map(id=>POKEMON[id].dex);
+  if(new Set(dexes).size!==6)return "あなたの同じ6体内では、同じポケモン（フォルム・シャドウ違いを含む）を重複登録できません。";
+  if(state.opponentRoster.length!==6||state.opponentRoster.some(id=>!POKEMON[id]))return "相手AIの6体生成に失敗しました。再生成してください。";
   return "";
 }
 function openPokemonDialog(side,index){
+  if(side!=="player")return;
   dialogTarget={side,index};
   const dialog=document.getElementById("pokemonDialog");
   const input=document.getElementById("pokemonSearch");
   input.value="";
-  document.getElementById("dialogHint").textContent=`${side==="player"?"あなた":"相手"}の${index+1}枠目を変更します。順位を確認できたポケモン、環境注目、名前順で表示します。相手チームと同じポケモンも登録できます。同じチーム内の重複だけ選択できません。`;
+  document.getElementById("dialogHint").textContent=`あなたの${index+1}枠目を選びます。相手AIと同じポケモンは使用可能です。あなたの6体内の同種重複だけ選択できません。`;
   renderPokemonOptions("");
   if(typeof dialog.showModal==="function")dialog.showModal();else dialog.setAttribute("open","");
 }
@@ -461,7 +640,7 @@ function renderPokemonOptions(query){
 }
 function chooseDialogPokemon(id){
   if(!dialogTarget||!POKEMON[id])return;
-  const key=dialogTarget.side==="player"?"playerRoster":"opponentRoster";
+  const key="playerRoster";
   state[key][dialogTarget.index]=id;
   state[buildsKey(dialogTarget.side)][dialogTarget.index]=null;
   state.playerPicks=[];state.opponentPicks=[];state.opponentSelectionMeta=null;state.opponentRevealed=false;state.lastRecommendations=null;state.quickBattleNumber=0;clearAnalysisCaches();
@@ -473,6 +652,7 @@ function renderPickGrid(id,roster,picks,side){
   const root=document.getElementById(id);
   root.replaceChildren(...roster.map((pid,index)=>{
     const p=effectivePokemon(side,index),button=document.createElement("button");button.type="button";button.className="pick-card";button.dataset.side=side;button.dataset.index=String(index);
+    if(!p){button.disabled=true;button.classList.add("empty-pick-card");button.textContent="未登録";return button;}
     const order=picks.indexOf(index);if(order>=0)button.classList.add("is-picked");
     button.innerHTML=`<div class="pick-card-title">${pokemonAvatar(p,"pick")}<span><strong>${escapeHtml(p.name)}</strong><small>CP ${p.cp}・Lv ${p.level}・個体値 ${p.atkIV}/${p.defIV}/${p.hpIV}</small></span></div><span class="type-row">${typeChips(p.types)}</span><small>${escapeHtml(moveLabel(p))}</small>`;
     if(order>=0){const badge=document.createElement("span");badge.className="pick-order";badge.textContent=String(order+1);button.appendChild(badge)}
@@ -483,6 +663,7 @@ function renderPublicRosterGrid(id,roster,side){
   const root=document.getElementById(id);if(!root)return;
   root.replaceChildren(...roster.map((pid,index)=>{
     const p=effectivePokemon(side,index),card=document.createElement("article");card.className="public-pick-card";
+    if(!p){card.classList.add("empty-pick-card");card.textContent="未登録";return card;}
     card.innerHTML=`<div class="pick-card-title">${pokemonAvatar(p,"pick")}<span><strong>${escapeHtml(p.name)}</strong><small>CP ${p.cp}・Lv ${p.level}・個体値 ${p.atkIV}/${p.defIV}/${p.hpIV}</small></span></div><span class="type-row">${typeChips(p.types)}</span><small>${escapeHtml(moveLabel(p))}</small>`;
     return card;
   }));
@@ -492,7 +673,7 @@ function renderSelection(){
   renderPublicRosterGrid("opponentSelectionPreview",state.opponentRoster,"opponent");
   document.getElementById("playerSelectionSummary").textContent=selectionNames(state.playerRoster,state.playerPicks)||"未選択";
   renderOpponentAiPanel();
-  if(!opponentSelectionIsFresh()&&!opponentAiComputing)ensureOpponentSelection();
+  if(state.playerRoster.every(id=>POKEMON[id])&&!opponentSelectionIsFresh()&&!opponentAiComputing)ensureOpponentSelection();
 }
 function selectionNames(roster,picks){return picks.map(i=>POKEMON[roster[i]]?.name||"?").join(" → ")}
 function togglePick(side,index){
@@ -645,7 +826,7 @@ function opponentSelectionSignature(){
   return `${sideSig("player")}::${sideSig("opponent")}`;
 }
 function opponentSelectionIsFresh(){
-  return Boolean(state.opponentSelectionMeta?.version===72&&state.opponentSelectionMeta?.signature===opponentSelectionSignature()&&state.opponentPicks.length===3);
+  return Boolean(state.opponentSelectionMeta?.version===8&&state.opponentSelectionMeta?.signature===opponentSelectionSignature()&&state.opponentPicks.length===3);
 }
 function opponentDuel(opponentIndex,playerIndex){
   const key=`${playerIndex}:${opponentIndex}:shield9`;
@@ -777,7 +958,7 @@ function computeOpponentSelection(){
   const candidates=uniqueLines(screened.map(x=>x.line)).slice(0,6);
   const validated=candidates.map((line,index)=>({line,...simulateOpponentLineEstimate(line,playerLines,seed+index*30001,style,2),analysis:opponentSelectionAnalysis(line)})).sort((a,b)=>b.winPct-a.winPct||b.avgAlive-a.avgAlive);
   const chosen=validated[0];
-  return {version:72,signature:opponentSelectionSignature(),createdAt:Date.now(),line:chosen.line,winPct:chosen.winPct,wins:chosen.wins,losses:chosen.losses,total:chosen.total,playerLineCount:chosen.playerLineCount,repeats:chosen.repeats,avgAlive:chosen.avgAlive,analysis:chosen.analysis,alternatives:validated.slice(1,3).map(x=>({line:x.line,winPct:x.winPct,wins:x.wins,losses:x.losses}))};
+  return {version:8,signature:opponentSelectionSignature(),createdAt:Date.now(),line:chosen.line,winPct:chosen.winPct,wins:chosen.wins,losses:chosen.losses,total:chosen.total,playerLineCount:chosen.playerLineCount,repeats:chosen.repeats,avgAlive:chosen.avgAlive,analysis:chosen.analysis,alternatives:validated.slice(1,3).map(x=>({line:x.line,winPct:x.winPct,wins:x.wins,losses:x.losses}))};
 }
 function ensureOpponentSelection(force=false,onReady=null){
   if(!force&&opponentSelectionIsFresh()){if(typeof onReady==="function")onReady();return}
@@ -809,6 +990,9 @@ function opponentAnalysisHtml(meta,compact=false){
 function renderOpponentAiPanel(){
   const status=document.getElementById("opponentAiStatus"),summary=document.getElementById("opponentSelectionSummary"),content=document.getElementById("opponentAiContent");
   if(!status||!summary||!content)return;
+  if(!state.playerRoster.every(id=>POKEMON[id])){
+    status.textContent="待機中";summary.textContent="あなたの6体を登録してください";content.innerHTML='<div class="analysis-loading"><strong>相手の3体選出はまだ開始していません</strong><span>あなたの6体が揃うと、相手AIが公開6体を基に60通りを自動分析します。</span></div>';return;
+  }
   if(opponentAiComputing||!opponentSelectionIsFresh()){
     status.textContent="分析中";summary.textContent="60通りを分析中";content.innerHTML='<div class="analysis-loading"><strong>相手AIが選出中…</strong><span>あなたの6体だけを見て、36対面×9シールド条件・技回転・引き先性能を比較しています。</span></div>';return;
   }
@@ -903,7 +1087,7 @@ function analyzeSelections(){
     const validated=candidates.map((line,index)=>({line,...simulateLineEstimate(line,opponentLines,seed+500000+index*20000,style,3),analysis:recommendationAnalysis(line)})).sort((a,b)=>b.winPct-a.winPct||b.avgAlive-a.avgAlive);
     const current=state.playerPicks.length===3?validated.find(x=>x.line.join(",")===state.playerPicks.join(","))?.winPct??estimateCurrentAcrossUnknown(seed,style):null;
     const top=validated.slice(0,3);
-    state.lastRecommendations={createdAt:Date.now(),version:72,results:top};saveState();renderRecommendations(top,current);
+    state.lastRecommendations={createdAt:Date.now(),version:8,results:top};saveState();renderRecommendations(top,current);
     button.disabled=false;button.textContent="✨ 勝てる選出を探す";
   },50);
 }
@@ -952,8 +1136,8 @@ function renderDataLibrary(query=""){
   document.getElementById("dataCountChip").textContent=`${DATA_INFO.count}体`;
   document.getElementById("dataMetrics").innerHTML=`<div class="metric"><strong>${DATA_INFO.count}</strong><span>収録ポケモン</span></div><div class="metric"><strong>${d.moveCountFast||0}</strong><span>通常技</span></div><div class="metric"><strong>${d.moveCountCharged||0}</strong><span>ゲージ技</span></div>`;
   const ids=META_ORDER.filter(id=>{const p=POKEMON[id],hay=[p.name,p.englishName,...p.types.map(typeName),...p.types,FAST_MOVES[p.fast]?.name,...p.charged.map(x=>CHARGED_MOVES[x]?.name)].join(" ").toLowerCase();return !q||hay.includes(q)}).slice(0,q?DATA_INFO.count:120);
-  document.getElementById("dataList").replaceChildren(...ids.map(id=>{const p=POKEMON[id],b=p.rank1,row=document.createElement("article");row.className="data-row";row.innerHTML=`<span class="data-rank">${p.rank?`#${p.rank}<small>PvPoke</small>`:`—<small>順位未検証</small>`}</span>${pokemonAvatar(p,"data")}<div class="data-main"><strong>${escapeHtml(p.name)} ${p.metaFeatured?'<span class="meta-inline">環境注目</span>':""}</strong><small>${typeChips(p.types)} ${escapeHtml(moveLabel(p))}</small></div><div class="data-build">CP ${b.cp}<br>Lv ${b.level} / 個体値 ${b.atkIV}/${b.defIV}/${b.hpIV}</div>`;return row}));
-  document.getElementById("dataDiagnostics").innerHTML=`<p><strong>データ元:</strong> ${escapeHtml(DATA_INFO.source)}</p><p><strong>順位:</strong> ${escapeHtml(EMBEDDED.rankLabel||"PvPoke総合順位")}</p><p>${escapeHtml(EMBEDDED.metaNote||"")}</p><p><strong>基準日:</strong> ${new Date(DATA_INFO.updatedAt).toLocaleDateString("ja-JP")}</p><p><strong>収録:</strong> 通常・フォルム ${d.baseForms||0}、シャドウ ${d.shadowForms||0}</p><p><strong>除外:</strong> ${d.excludedCount||0}件${d.excludedCount?`（${(d.excluded||[]).map(x=>`${escapeHtml(x.id)}: ${escapeHtml(x.reason)}`).join(" / ")}）`:"。数値データ不足による除外はありません。"}</p><p>各個体はCP1500以下でSCPが最大となるレベル・個体値を全4096通りから計算しています。攻撃寄り・CMP寄り・手入力にも切替可能です。</p>`;
+  document.getElementById("dataList").replaceChildren(...ids.map(id=>{const p=POKEMON[id],b=p.rank1,row=document.createElement("article");row.className="data-row";row.innerHTML=`<span class="data-rank">${p.rank?`#${p.rank}<small>性能順位</small>`:`—<small>指数未検証</small>`}</span>${pokemonAvatar(p,"data")}<div class="data-main"><strong>${escapeHtml(p.name)} ${p.metaFeatured?'<span class="meta-inline">環境注目</span>':""}</strong><small>${typeChips(p.types)} ${escapeHtml(moveLabel(p))}</small></div><div class="data-build">CP ${b.cp}<br>Lv ${b.level} / 個体値 ${b.atkIV}/${b.defIV}/${b.hpIV}</div>`;return row}));
+  document.getElementById("dataDiagnostics").innerHTML=`<p><strong>数値データ元:</strong> ${escapeHtml(DATA_INFO.source)}</p><p><strong>メタ評価:</strong> PvPoke総合性能順位（2026-07-19）を軸に、GameWithの2026-07-17環境レポートと2026年実戦採用データを別タグで補足しています。GO Battle Logは使用状況を分析する設計ですが、公開画面から完全な全体使用率を固定取得できないため、架空の使用率％は表示しません。</p><p><strong>基準日:</strong> ${new Date(DATA_INFO.updatedAt).toLocaleDateString("ja-JP")}</p><p><strong>収録:</strong> 通常・フォルム ${d.baseForms||0}、シャドウ ${d.shadowForms||0}</p><p><strong>除外:</strong> ${d.excludedCount||0}件${d.excludedCount?`（${(d.excluded||[]).map(x=>`${escapeHtml(x.id)}: ${escapeHtml(x.reason)}`).join(" / ")}）`:"。数値データ不足による除外はありません。"}</p><p>各個体はCP1500以下でSCPが最大となるレベル・個体値を全4096通りから計算しています。攻撃寄り・CMP寄り・手入力にも切替可能です。</p>`;
 }
 
 function targetWins(){return Math.ceil(Number(state.format)/2)}
@@ -973,13 +1157,19 @@ function renderMatch(){
   document.getElementById("simulateGame").disabled=matchFinished();document.getElementById("nextSelection").disabled=matchFinished();
   const msg=document.getElementById("matchMessage");msg.textContent=state.playerScore>=targetWins()?"マッチ終了：あなたの勝利 🎉":state.opponentScore>=targetWins()?"マッチ終了：相手の勝利":"";
 }
+function regenerateOpponentParty(showMessage=true){
+  generateStrongOpponentRoster(true);
+  state.playerScore=0;state.opponentScore=0;state.gameNumber=1;state.history=[];state.playerPicks=[];state.opponentPicks=[];state.opponentSelectionMeta=null;state.opponentRevealed=false;state.lastRecommendations=null;
+  saveState();renderAll();
+  if(showMessage){const msg=document.getElementById("rosterMessage");if(msg)msg.textContent="最新メタ候補から、相性補完の異なる相手6体を再生成しました。";switchTab("roster")}
+}
 function resetMatch(){state.playerScore=0;state.opponentScore=0;state.gameNumber=1;state.history=[];state.playerPicks=[];state.opponentPicks=[];state.opponentSelectionMeta=null;state.opponentRevealed=false;state.lastRecommendations=null;saveState();renderSelection();renderMatch();renderBattleLineups();document.getElementById("recommendationPanel").hidden=true}
-function resetAll(){if(!confirm("登録・個体値・技・選出・履歴を初期化しますか？"))return;state=defaultState();repairStateRosters();saveState();renderAll();switchTab("roster")}
+function resetAll(){if(!confirm("あなたの登録・個体値・技・選出・履歴を初期化しますか？"))return;state=defaultState();applyCurrentMetaSnapshot();generateStrongOpponentRoster(false);repairStateRosters();saveState();renderAll();switchTab("roster")}
 
 function switchTab(name){document.querySelectorAll(".tab").forEach(button=>button.classList.toggle("is-active",button.dataset.tab===name));document.querySelectorAll(".panel").forEach(panel=>panel.classList.toggle("is-active",panel.id===name));if(name==="selection")renderSelection();if(name==="battle")renderBattleLineups();if(name==="match")renderMatch();if(name==="data")renderDataLibrary(document.getElementById("dataSearch")?.value||"");window.scrollTo({top:0,behavior:"smooth"})}
 function startTimer(){clearInterval(timerId);timerValue=90;updateTimer();timerId=setInterval(()=>{timerValue--;updateTimer();if(timerValue<=0){clearInterval(timerId);timerId=null;document.getElementById("selectionMessage").textContent="選出時間が終了しました。"}},1000)}
 function updateTimer(){const el=document.getElementById("timer");el.textContent=timerValue;el.closest(".timer-box").classList.toggle("is-low",timerValue<=15)}
-function renderAll(){renderRosters();renderSelection();renderBattleLineups();renderMatch();renderDataLibrary(document.getElementById("dataSearch")?.value||"");updateTimer();updateRunBattleButton();if(state.lastRecommendations?.version===72&&state.lastRecommendations?.results?.length)renderRecommendations(state.lastRecommendations.results,null);else state.lastRecommendations=null}
+function renderAll(){renderRosters();renderSelection();renderBattleLineups();renderMatch();renderDataLibrary(document.getElementById("dataSearch")?.value||"");updateTimer();updateRunBattleButton();if(state.lastRecommendations?.version===8&&state.lastRecommendations?.results?.length)renderRecommendations(state.lastRecommendations.results,null);else state.lastRecommendations=null}
 
 function applyRecommendation(line){
   const parsed=String(line||"").split(",").map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<6);
@@ -991,6 +1181,7 @@ function applyRecommendation(line){
 
 function wireEvents(){
   document.querySelectorAll(".tab").forEach(button=>button.addEventListener("click",()=>switchTab(button.dataset.tab)));
+  document.getElementById("regenerateOpponent").addEventListener("click",()=>regenerateOpponentParty(true));
   document.getElementById("saveRosters").addEventListener("click",()=>{const error=validateRosters();document.getElementById("rosterMessage").textContent=error||"保存しました。相手AIがあなたの6体を分析します。";if(!error){state.playerPicks=[];state.opponentRevealed=false;state.quickBattleNumber=0;if(!opponentSelectionIsFresh()){state.opponentPicks=[];state.opponentSelectionMeta=null}saveState();renderSelection();switchTab("selection")}});
   document.addEventListener("click",event=>{
     const change=event.target.closest(".change-pokemon");if(change){openPokemonDialog(change.dataset.side,Number(change.dataset.index));return}
@@ -1020,7 +1211,7 @@ function wireEvents(){
   document.getElementById("analyzeSelections").addEventListener("click",analyzeSelections);
   document.getElementById("simulateGame").addEventListener("click",()=>runOne(true));
   document.getElementById("nextSelection").addEventListener("click",()=>{state.playerPicks=[];state.opponentRevealed=false;state.lastRecommendations=null;state.quickBattleNumber=0;saveState();renderSelection();renderBattleLineups();switchTab("selection")});
-  document.getElementById("newMatch").addEventListener("click",resetMatch);
+  document.getElementById("newMatch").addEventListener("click",()=>regenerateOpponentParty(true));
   document.getElementById("matchFormat").addEventListener("change",event=>{state.format=Number(event.target.value);resetMatch()});
   document.getElementById("resetAll").addEventListener("click",resetAll);
   }

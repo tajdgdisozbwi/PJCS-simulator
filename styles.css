@@ -140,7 +140,7 @@ button,input,select{font-size:16px}input[type="search"]{font-size:16px!important
 @media(min-width:760px){.selection-scroll .pick-card,.selection-scroll .public-pick-card{flex-basis:250px;width:250px}.selection-roster-columns{grid-template-columns:1fr 1fr}}
 
 
-/* v0.7.2: keep six Pokémon in a 3-row × 2-column board while allowing horizontal swipe */
+/* Keep six Pokémon in a 3-row × 2-column board while allowing horizontal swipe */
 .selection-scroll{
   display:grid!important;
   grid-template-rows:repeat(3,minmax(118px,auto))!important;
@@ -174,5 +174,19 @@ button,input,select{font-size:16px}input[type="search"]{font-size:16px!important
   .selection-scroll .pick-card,.selection-scroll .public-pick-card{width:auto!important;min-width:205px!important}
 }
 
-/* v0.7.2 shield matrix readability */
+/* Shield matrix readability */
 .coverage-row em{white-space:normal;max-width:100%}.coverage-row em small,.ai-targets>div>span{white-space:normal;overflow-wrap:anywhere;line-height:1.35}
+
+
+/* v0.8 empty player roster + generated opponent party */
+.empty-roster-slot{border-style:dashed;min-height:108px;background:linear-gradient(145deg,rgba(11,28,53,.7),rgba(20,45,76,.72))}
+.empty-roster-slot .roster-main{display:grid;gap:4px}.empty-roster-slot .roster-main small{color:var(--muted)}
+.empty-slot-icon{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:rgba(96,165,250,.14);border:1px dashed rgba(96,165,250,.65);font-size:1.5rem;color:#93c5fd}
+.empty-roster-slot .change-pokemon{white-space:nowrap;writing-mode:horizontal-tb;min-width:64px}
+.ai-lock-chip{justify-self:end;white-space:nowrap;font-size:.66rem;color:#facc15;border:1px solid rgba(250,204,21,.35);border-radius:999px;padding:5px 8px;background:rgba(250,204,21,.08)}
+.meta-source-mini{display:block;color:#8fb8dd;margin-top:5px;line-height:1.3}
+.opponent-auto-card{border-color:rgba(250,204,21,.28)}
+.opponent-generation-info{display:grid;gap:4px;margin:0 0 10px;padding:10px;border:1px solid rgba(250,204,21,.22);border-radius:12px;background:rgba(250,204,21,.055);font-size:.72rem;line-height:1.45}
+.opponent-generation-info strong{color:#fde68a}.opponent-generation-info span{color:var(--muted)}
+.empty-pick-card{display:grid;place-items:center;color:var(--muted);border-style:dashed}
+@media(max-width:420px){.empty-roster-slot{grid-template-columns:28px 42px minmax(0,1fr);}.empty-roster-slot .change-pokemon{grid-column:2/4;justify-self:stretch}.ai-lock-chip{grid-column:2/4;justify-self:start}}

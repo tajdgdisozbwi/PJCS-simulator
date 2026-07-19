@@ -1,10 +1,10 @@
 {
-  "name": "PJCS Training Lab v0.7.2",
+  "name": "PJCS Training Lab v0.8",
   "short_name": "PJCS Lab",
-  "start_url": "./index.html?v=7-2",
+  "start_url": "./index.html?v=8",
   "display": "standalone",
   "background_color": "#071225",
   "theme_color": "#0d1b34",
   "lang": "ja",
-  "description": "321体内蔵・相手3体自動選出・選出時に相手6体表示・3行×2列横スクロール・全9シールド条件評価・連続自動対戦対応のPokémon GO SL/PJCS向けPWA"
+  "description": "321体内蔵・自分6体は空欄から登録・最新メタを基に相手6体を自動生成・相手3体自動選出・全9シールド条件評価・連続自動対戦対応のPokémon GO SL/PJCS向けPWA"
 }
