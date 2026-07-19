@@ -1,7 +1,7 @@
 "use strict";
 
-const STORAGE_KEY = "pjcs-simulator-v04";
-const OLD_STORAGE_KEYS = ["pjcs-simulator-v03","pjcs-simulator-v02"];
+const STORAGE_KEY = "pjcs-simulator-v05";
+const OLD_STORAGE_KEYS = ["pjcs-simulator-v04","pjcs-simulator-v03","pjcs-simulator-v02"];
 const TURN_MS = 500;
 const SWITCH_COOLDOWN_TURNS = 90;
 const MAX_TURNS = 540;
@@ -33,7 +33,7 @@ const MOVE_JP = {
 };
 
 const COMMON_JP = {
-  lickilicky:"ベロベルト",feraligatr:"オーダイル",altaria:"チルタリス",corsola:"サニーゴ",jellicent:"ブルンゲル",quagsire:"ヌオー",jumpluff:"ワタッコ",empoleon:"エンペルト",clodsire:"ドオー",sableye:"ヤミラミ",ninetales:"キュウコン",corviknight:"アーマーガア",tinkaton:"デカヌチャン",azumarill:"マリルリ",skarmory:"エアームド",medicham:"チャーレム",stunfisk:"マッギョ",lanturn:"ランターン",gligar:"グライガー",gliscor:"グライオン",mandibuzz:"バルジーナ",dunsparce:"ノコッチ",dudunsparce:"ノココッチ",diggersby:"ホルード",carbink:"メレシー",toxapex:"ドヒドイデ",trevenant:"オーロット",venusaur:"フシギバナ",charizard:"リザードン",swampert:"ラグラージ",serperior:"ジャローダ",whiscash:"ナマズン",pelipper:"ペリッパー",noctowl:"ヨルノズク",umbreon:"ブラッキー",dewgong:"ジュゴン",lapras:"ラプラス",registeel:"レジスチル",bastiodon:"トリデプス",victreebel:"ウツボット",machamp:"カイリキー",primeape:"オコリザル",annihilape:"コノヨザル",poliwrath:"ニョロボン",toxicroak:"ドクロッグ",marowak:"ガラガラ",muk:"ベトベトン",drapion:"ドラピオン",golbat:"ゴルバット",crobat:"クロバット",ariados:"アリアドス",beedrill:"スピアー",forretress:"フォレトス",cradily:"ユレイドル",aurorus:"アマルルガ",abomasnow:"ユキノオー",walrein:"トドゼルガ",froslass:"ユキメノコ",alolan_sandslash:"サンドパン",sandslash:"サンドパン",wigglytuff:"プクリン",clefable:"ピクシー",sylveon:"ニンフィア",aromatisse:"フレフワン",togetic:"トゲチック",togekiss:"トゲキッス",dragonair:"ハクリュー",goodra:"ヌメルゴン",sliggoo:"ヌメイル",kommo_o:"ジャラランガ",hakamo_o:"ジャランゴ",zweilous:"ジヘッド",guzzlord:"アクジキング",greninja:"ゲッコウガ",samurott:"ダイケンキ",blastoise:"カメックス",tentacruel:"ドククラゲ",mantine:"マンタイン",araquanid:"オニシズクモ",golisopod:"グソクムシャ",charjabug:"デンヂムシ",galvantula:"デンチュラ",magnezone:"ジバコイル",togedemaru:"トゲデマル",pachirisu:"パチリス",raichu:"ライチュウ",electrode:"マルマイン",charjabug_shadow:"デンヂムシ",cofagrigus:"デスカーン",runerigus:"デスバーン",drifblim:"フワライド",dusclops:"サマヨール",haunter:"ゴースト",gengar:"ゲンガー",froslass_shadow:"ユキメノコ",mew:"ミュウ",cresselia:"クレセリア",deoxys_defense:"デオキシス",hypno:"スリーパー",malamar:"カラマネロ",oranguru:"ヤレユータン",girafarig:"キリンリキ",farigiraf:"リキキリン",lokix:"エクスレッグ",obstagoon:"タチフサグマ",scrafty:"ズルズキン",pangoro:"ゴロンダ",morpeko_full_belly:"モルペコ",perrserker:"ニャイキング",escavalier:"シュバルゴ",ferrothorn:"ナットレイ",steelix:"ハガネール",excadrill:"ドリュウズ",probopass:"ダイノーズ",aggron:"ボスゴドラ",melmetal:"メルメタル",aegislash_shield:"ギルガルド",talonflame:"ファイアロー",skeledirge:"ラウドボーン",salazzle:"エンニュート",typhlosion:"バクフーン",magcargo:"マグカルゴ",seismitoad:"ガマゲロゲ",gastrodon:"トリトドン",hippowdon:"カバルドン",flygon:"フライゴン",claydol:"ネンドール",rhyperior:"ドサイドン",vigoroth:"ヤルキモノ",greedent:"ヨクバリス",furret:"オオタチ",miltank:"ミルタンク",snorlax:"カビゴン",dubwool:"バイウールー",bibarel:"ビーダル",castform:"ポワルン"
+  lickilicky:"ベロベルト",feraligatr:"オーダイル",altaria:"チルタリス",corsola:"サニーゴ",jellicent:"ブルンゲル",quagsire:"ヌオー",jumpluff:"ワタッコ",empoleon:"エンペルト",clodsire:"ドオー",sableye:"ヤミラミ",ninetales:"キュウコン",corviknight:"アーマーガア",tinkaton:"デカヌチャン",azumarill:"マリルリ",skarmory:"エアームド",medicham:"チャーレム",stunfisk:"マッギョ",lanturn:"ランターン",gligar:"グライガー",gliscor:"グライオン",mandibuzz:"バルジーナ",dunsparce:"ノコッチ",dudunsparce:"ノココッチ",diggersby:"ホルード",carbink:"メレシー",toxapex:"ドヒドイデ",trevenant:"オーロット",venusaur:"フシギバナ",charizard:"リザードン",swampert:"ラグラージ",serperior:"ジャローダ",whiscash:"ナマズン",pelipper:"ペリッパー",noctowl:"ヨルノズク",umbreon:"ブラッキー",dewgong:"ジュゴン",lapras:"ラプラス",registeel:"レジスチル",bastiodon:"トリデプス",victreebel:"ウツボット",machamp:"カイリキー",primeape:"オコリザル",annihilape:"コノヨザル",poliwrath:"ニョロボン",toxicroak:"ドクロッグ",marowak:"ガラガラ",muk:"ベトベトン",drapion:"ドラピオン",golbat:"ゴルバット",crobat:"クロバット",ariados:"アリアドス",beedrill:"スピアー",forretress:"フォレトス",cradily:"ユレイドル",aurorus:"アマルルガ",abomasnow:"ユキノオー",walrein:"トドゼルガ",froslass:"ユキメノコ",alolan_sandslash:"サンドパン",sandslash:"サンドパン",wigglytuff:"プクリン",clefable:"ピクシー",sylveon:"ニンフィア",aromatisse:"フレフワン",togetic:"トゲチック",togekiss:"トゲキッス",dragonair:"ハクリュー",goodra:"ヌメルゴン",sliggoo:"ヌメイル",kommo_o:"ジャラランガ",hakamo_o:"ジャランゴ",zweilous:"ジヘッド",guzzlord:"アクジキング",greninja:"ゲッコウガ",samurott:"ダイケンキ",blastoise:"カメックス",tentacruel:"ドククラゲ",mantine:"マンタイン",araquanid:"オニシズクモ",golisopod:"グソクムシャ",charjabug:"デンヂムシ",galvantula:"デンチュラ",magnezone:"ジバコイル",togedemaru:"トゲデマル",pachirisu:"パチリス",raichu:"ライチュウ",electrode:"マルマイン",charjabug_shadow:"デンヂムシ",cofagrigus:"デスカーン",runerigus:"デスバーン",drifblim:"フワライド",dusclops:"サマヨール",haunter:"ゴースト",gengar:"ゲンガー",froslass_shadow:"ユキメノコ",mew:"ミュウ",cresselia:"クレセリア",deoxys_defense:"デオキシス",hypno:"スリーパー",malamar:"カラマネロ",oranguru:"ヤレユータン",girafarig:"キリンリキ",farigiraf:"リキキリン",lokix:"エクスレッグ",obstagoon:"タチフサグマ",scrafty:"ズルズキン",pangoro:"ゴロンダ",morpeko_full_belly:"モルペコ",perrserker:"ニャイキング",escavalier:"シュバルゴ",ferrothorn:"ナットレイ",steelix:"ハガネール",excadrill:"ドリュウズ",probopass:"ダイノーズ",aggron:"ボスゴドラ",melmetal:"メルメタル",aegislash_shield:"ギルガルド",talonflame:"ファイアロー",skeledirge:"ラウドボーン",salazzle:"エンニュート",typhlosion:"バクフーン",magcargo:"マグカルゴ",seismitoad:"ガマゲロゲ",gastrodon:"トリトドン",hippowdon:"カバルドン",flygon:"フライゴン",claydol:"ネンドール",rhyperior:"ドサイドン",vigoroth:"ヤルキモノ",greedent:"ヨクバリス",furret:"オオタチ",miltank:"ミルタンク",snorlax:"カビゴン",dubwool:"バイウールー",bibarel:"ビーダル",castform:"ポワルン",fearow:"オニドリル"
 };
 
 const FALLBACK_FAST = structuredClone(EMBEDDED.fast);
@@ -53,7 +53,7 @@ let DATA_INFO = {
 let japaneseNamesByEnglish = new Map();
 
 const PLAYER_DEFAULT = ["lickilicky","altaria","empoleon","quagsire_shadow","jumpluff","forretress_shadow"].filter(id=>POKEMON[id]);
-const OPPONENT_DEFAULT = ["tinkaton","ninetales_shadow","corviknight","feraligatr","clodsire","sableye_shadow"].filter(id=>POKEMON[id]);
+const OPPONENT_DEFAULT = ["tinkaton","ninetales_shadow","corviknight","feraligatr","clodsire","sableye"].filter(id=>POKEMON[id]);
 
 function clone(value){ return JSON.parse(JSON.stringify(value)); }
 function clamp(v,min,max){ return Math.max(min,Math.min(max,v)); }
@@ -77,10 +77,8 @@ function formSuffix(speciesId,englishName=""){
   if(/_hisuian/.test(id))parts.push("ヒスイのすがた");
   if(/_paldean/.test(id))parts.push("パルデアのすがた");
   if(/_shadow$/.test(id))parts.push("シャドウ");
-  if(!parts.length){
-    const m=String(englishName).match(/\(([^)]+)\)/);
-    if(m && !/shadow/i.test(m[1]))parts.push(m[1]);
-  }
+  // Raw internal form labels such as "normal" are never displayed.
+  void englishName;
   return parts.length?`（${parts.join("・")}）`:"";
 }
 function localizedSpeciesName(p){
@@ -196,7 +194,7 @@ function hydrateEmbeddedData(){
   DATA_INFO={source:EMBEDDED.source,count:META_ORDER.length,loaded:true,updatedAt:EMBEDDED.updatedAt,diagnostics:EMBEDDED.diagnostics};
   repairStateRosters();
   const when=new Date(DATA_INFO.updatedAt).toLocaleDateString("ja-JP");
-  setDataBanner("内蔵SLデータを読み込みました",`${DATA_INFO.count}体・技 ${DATA_INFO.diagnostics.moveCountFast+DATA_INFO.diagnostics.moveCountCharged}種・スナップショット ${when}`,"ready");
+  setDataBanner("内蔵SLデータを読み込みました",`${DATA_INFO.count}体・技 ${DATA_INFO.diagnostics.moveCountFast+DATA_INFO.diagnostics.moveCountCharged}種・更新 ${when}`,"ready");
 }
 
 function effectiveness(type,defTypes){return defTypes.reduce((m,t)=>{if(IMMUNE[type]?.includes(t))return m*0.390625;if(SUPER[type]?.includes(t))return m*1.6;if(RESIST[type]?.includes(t))return m*0.625;return m},1)}
@@ -259,34 +257,42 @@ function applyEffects(user,target,move,rng,log,turn){
   }
 }
 function turnLabel(turn){return `${(turn*TURN_MS/1000).toFixed(1)}秒`}
+function fastTiming(move){return `${move.turns}ターン / ${(move.turns*TURN_MS/1000).toFixed(1)}秒`}
 function forceSwitch(team,opp,log,turn){const options=alive(team).filter(i=>i!==team.active);if(!options.length)return;let best=options[0],score=-Infinity;for(const i of options){const s=matchupScore(team.party[i],opp);if(s>score){score=s;best=i}}team.active=best;team.party[best].fastPending=null;log.push(`${turnLabel(turn)} ${active(team).name}を繰り出した`)}
 function processFaints(a,b,log,turn){const am=active(a),bm=active(b);if(am&&am.currentHp<=0&&!am.fainted){am.fainted=true;am.currentHp=0;am.fastPending=null;log.push(`${turnLabel(turn)} ${am.name}がひんし`)}if(bm&&bm.currentHp<=0&&!bm.fainted){bm.fainted=true;bm.currentHp=0;bm.fastPending=null;log.push(`${turnLabel(turn)} ${bm.name}がひんし`)}if(!battleOver(a,b)){if(active(a).fainted)forceSwitch(a,active(b),log,turn);if(active(b).fainted)forceSwitch(b,active(a),log,turn)}}
 
-function simulateBattle(playerRoster,playerPicks,opponentRoster,opponentPicks,seed,style="balanced",verbose=true,playerBuilds=state.playerBuilds,opponentBuilds=state.opponentBuilds){
+function simulateBattle(playerRoster,playerPicks,opponentRoster,opponentPicks,seed,style="balanced",verbose=true,playerBuilds=state.playerBuilds,opponentBuilds=state.opponentBuilds,options={}){
   const rng=mulberry32(Number(seed)||1),p=createTeam(playerRoster,playerPicks,playerBuilds),o=createTeam(opponentRoster,opponentPicks,opponentBuilds),log=[];
-  for(let turn=1;turn<=MAX_TURNS;turn++){
-    p.switchCooldown=Math.max(0,p.switchCooldown-1);o.switchCooldown=Math.max(0,o.switchCooldown-1);
+  p.shields=clamp(Math.round(safeNumber(options.playerShields,options.shields??2)),0,2);
+  o.shields=clamp(Math.round(safeNumber(options.opponentShields,options.shields??2)),0,2);
+  let turn=0;
+  while(turn<MAX_TURNS){
     const pActor=active(p),oActor=active(o);
     const pa=pActor.fastPending?{type:"wait"}:chooseAction(p,o,rng,style);
     const oa=oActor.fastPending?{type:"wait"}:chooseAction(o,p,rng,style);
 
+    // Charged Moves resolve at the current turn boundary. They have energy cost,
+    // but no move-specific PvP turn duration; the battle clock does not advance.
     const charged=[];
-    if(pa.type==="charged")charged.push({team:p,other:o,action:pa,actor:pActor});
-    if(oa.type==="charged")charged.push({team:o,other:p,action:oa,actor:oActor});
+    if(pa.type==="charged")charged.push({team:p,other:o,action:pa,actor:pActor,label:"あなた"});
+    if(oa.type==="charged")charged.push({team:o,other:p,action:oa,actor:oActor,label:"相手"});
     charged.sort((x,y)=>attackStat(y.actor)-attackStat(x.actor)||(rng()<.5?-1:1));
-    for(const item of charged){
-      if(battleOver(p,o))break;
-      const user=item.actor,target=active(item.other),move=item.action.move;
-      if(active(item.team)!==user||!user||user.fainted||!move||user.energy<move.energy)continue;
-      user.energy-=move.energy;
-      const shield=shouldShield(item.other,user,move,rng,style);
-      const dmg=shield?1:calcDamage(user,target,move);
-      if(shield)item.other.shields-=1;
-      target.currentHp-=dmg;
-      if(verbose)log.push(`${turnLabel(turn)} ${user.name}の${move.name} → ${target.name} ${dmg}ダメージ${shield?"（シールド）":""}`);
-      applyEffects(user,target,move,rng,log,turn);processFaints(p,o,log,turn);
+    if(charged.length){
+      for(const item of charged){
+        if(battleOver(p,o))break;
+        const user=item.actor,target=active(item.other),move=item.action.move;
+        if(active(item.team)!==user||!user||user.fainted||!move||user.energy<move.energy)continue;
+        user.energy-=move.energy;
+        const shield=shouldShield(item.other,user,move,rng,style);
+        const dmg=shield?1:calcDamage(user,target,move);
+        if(shield)item.other.shields-=1;
+        target.currentHp-=dmg;
+        if(verbose)log.push(`${turnLabel(turn)} ${user.name}の${move.name} → ${target.name} ${dmg}ダメージ${shield?"（シールド）":""}（ゲージ技・固有ターンなし）`);
+        applyEffects(user,target,move,rng,log,turn);processFaints(p,o,log,turn);
+      }
+      if(battleOver(p,o))return finishBattle(p,o,turn,log,"KO");
+      continue;
     }
-    if(battleOver(p,o))return finishBattle(p,o,turn,log,"KO");
 
     if(pa.type==="switch"&&active(p)===pActor&&!active(p).fainted&&p.switchCooldown===0){p.active=pa.index;p.switchCooldown=SWITCH_COOLDOWN_TURNS;if(verbose)log.push(`${turnLabel(turn)} あなたは${active(p).name}へ交代`)}
     if(oa.type==="switch"&&active(o)===oActor&&!active(o).fainted&&o.switchCooldown===0){o.active=oa.index;o.switchCooldown=SWITCH_COOLDOWN_TURNS;if(verbose)log.push(`${turnLabel(turn)} 相手は${active(o).name}へ交代`)}
@@ -294,16 +300,22 @@ function simulateBattle(playerRoster,playerPicks,opponentRoster,opponentPicks,se
     if(pa.type==="fast"&&active(p)===pActor&&!active(p).fastPending)active(p).fastPending={remaining:pa.move.turns,move:pa.move};
     if(oa.type==="fast"&&active(o)===oActor&&!active(o).fastPending)active(o).fastPending={remaining:oa.move.turns,move:oa.move};
 
+    // One real PvP turn (0.5 seconds) passes here.
+    turn+=1;
+    p.switchCooldown=Math.max(0,p.switchCooldown-1);o.switchCooldown=Math.max(0,o.switchCooldown-1);
     const fastHits=[];
     for(const [team,other] of [[p,o],[o,p]]){
       const mon=active(team);
-      if(mon?.fastPending){mon.fastPending.remaining-=1;if(mon.fastPending.remaining<=0){fastHits.push({attacker:mon,defender:active(other),move:mon.fastPending.move});mon.fastPending=null}}
+      if(mon?.fastPending){
+        mon.fastPending.remaining-=1;
+        if(mon.fastPending.remaining<=0){fastHits.push({attacker:mon,defender:active(other),move:mon.fastPending.move});mon.fastPending=null}
+      }
     }
     const damages=fastHits.map(hit=>({...hit,damage:calcDamage(hit.attacker,hit.defender,hit.move)}));
     for(const hit of damages){
       if(!hit.attacker.fainted&&hit.defender){
         hit.attacker.energy=clamp(hit.attacker.energy+hit.move.energy,0,100);hit.defender.currentHp-=hit.damage;
-        if(verbose&&turn%4===0)log.push(`${turnLabel(turn)} ${hit.attacker.name}の${hit.move.name} → ${hit.damage}ダメージ（E${hit.attacker.energy}）`);
+        if(verbose)log.push(`${turnLabel(turn)} ${hit.attacker.name}の${hit.move.name} → ${hit.damage}ダメージ（${fastTiming(hit.move)}、E+${hit.move.energy}→${hit.attacker.energy}）`);
       }
     }
     processFaints(p,o,log,turn);
@@ -317,7 +329,7 @@ function finishBattle(p,o,turn,log,reason){
   if(alive(p).length!==alive(o).length)winner=alive(p).length>alive(o).length?"player":"opponent";
   else if(Math.abs(teamHpRatio(p)-teamHpRatio(o))<1e-9)winner=attackStat(active(p))>=attackStat(active(o))?"player":"opponent";
   else winner=teamHpRatio(p)>teamHpRatio(o)?"player":"opponent";
-  return {winner,turns:turn,seconds:turn*TURN_MS/1000,reason,player:{alive:alive(p).length,hp:teamHpRatio(p),shields:p.shields},opponent:{alive:alive(o).length,hp:teamHpRatio(o),shields:o.shields},log:log.slice(-140)};
+  return {winner,turns:turn,seconds:turn*TURN_MS/1000,reason,player:{alive:alive(p).length,hp:teamHpRatio(p),shields:p.shields},opponent:{alive:alive(o).length,hp:teamHpRatio(o),shields:o.shields},log:log.slice(-260)};
 }
 
 function escapeHtml(value){return String(value??"").replace(/[&<>'"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[ch]))}
@@ -332,7 +344,7 @@ function rosterCard(side,index,id){
     <span class="slot-number">${index+1}</span>
     <div class="roster-main">
       <div class="roster-title"><strong>${escapeHtml(p.name)}</strong><span class="cp-chip">CP ${b.cp}</span></div>
-      <div class="type-row">${typeChips(p.types)}<span class="rank-chip">収録 #${p.rank||"—"}</span></div>
+      <div class="type-row">${typeChips(p.types)}${p.rank?`<span class="rank-chip">PvPoke #${p.rank}</span>`:""}${p.metaFeatured?'<span class="meta-chip">環境注目</span>':""}</div>
       <div class="build-summary"><span>Lv ${b.level}</span><span>IV ${b.atkIV}/${b.defIV}/${b.hpIV}</span><span>A ${b.atk.toFixed(1)}</span><span>D ${b.def.toFixed(1)}</span><span>HP ${b.hp}</span></div>
       <small class="roster-moves">${escapeHtml(moveLabel({...p,...b}))}</small>
     </div>
@@ -359,10 +371,9 @@ function openPokemonDialog(side,index){
   const dialog=document.getElementById("pokemonDialog");
   const input=document.getElementById("pokemonSearch");
   input.value="";
-  document.getElementById("dialogHint").textContent=`${side==="player"?"あなた":"相手"}の${index+1}枠目を変更します。SL順位上位から表示。`;
+  document.getElementById("dialogHint").textContent=`${side==="player"?"あなた":"相手"}の${index+1}枠目を変更します。順位を確認できたポケモン、環境注目、名前順で表示します。使用率順位ではありません。`;
   renderPokemonOptions("");
   if(typeof dialog.showModal==="function")dialog.showModal();else dialog.setAttribute("open","");
-  setTimeout(()=>input.focus(),50);
 }
 function renderPokemonOptions(query){
   const root=document.getElementById("pokemonList");
@@ -377,7 +388,7 @@ function renderPokemonOptions(query){
     const p=POKEMON[id],button=document.createElement("button");button.type="button";button.className="pokemon-option";button.dataset.pokemonId=id;
     const duplicate=currentRoster.some((existing,i)=>i!==dialogTarget.index&&POKEMON[existing]?.dex===p.dex);
     button.disabled=duplicate;
-    button.innerHTML=`<span class="pokemon-rank">#${p.rank||"—"}</span><span class="pokemon-option-main"><strong>${escapeHtml(p.name)}</strong><small>CP ${p.cp}・${escapeHtml(moveLabel(p))}</small><span class="type-row">${typeChips(p.types)}</span></span>${duplicate?'<span class="duplicate-label">登録済み</span>':""}`;
+    button.innerHTML=`<span class="pokemon-rank">${p.rank?`#${p.rank}`:(p.metaFeatured?"注目":"—")}</span><span class="pokemon-option-main"><strong>${escapeHtml(p.name)}</strong>${p.metaFeatured?'<span class="meta-inline">環境注目</span>':""}<small>CP ${p.cp}・${escapeHtml(moveLabel(p))}</small><span class="type-row">${typeChips(p.types)}</span></span>${duplicate?'<span class="duplicate-label">登録済み</span>':""}`;
     return button;
   }));
   if(!ids.length){const empty=document.createElement("p");empty.className="empty-state";empty.textContent="該当するポケモンが見つかりません。";root.appendChild(empty)}
@@ -449,81 +460,87 @@ function lineupPermutations(){
 }
 function lineMons(roster,line,builds){return line.map(i=>monFromId(roster[i],builds?.[i]))}
 function pairScoreBySlots(aRoster,aIndex,bRoster,bIndex,aBuilds,bBuilds){return clamp(matchupScore(monFromId(aRoster[aIndex],aBuilds?.[aIndex]),monFromId(bRoster[bIndex],bBuilds?.[bIndex])),-2,2)}
-function pairScoreById(aId,bId){return clamp(matchupScore(monFromId(aId),monFromId(bId)),-2,2)}
 function lineupHeuristic(playerRoster,pLine,opponentRoster,oLine){
-  const pIds=pLine.map(i=>playerRoster[i]),oIds=oLine.map(i=>opponentRoster[i]);
-  const lead=pairScoreById(pIds[0],oIds[0]);
-  const coverage=oIds.map(oid=>Math.max(...pIds.map(pid=>pairScoreById(pid,oid))));
-  const pressure=pIds.map(pid=>Math.max(...oIds.map(oid=>pairScoreById(pid,oid))));
-  const worstCoverage=Math.min(...coverage);
-  const safe=pIds.slice(1).map(pid=>{
-    const p=POKEMON[pid];
-    const worst=Math.min(...oIds.map(oid=>pairScoreById(pid,oid)));
-    return worst+Math.log(Math.max(1,p.def*p.hp))/25;
+  let total=0;
+  for(const pi of pLine){
+    let best=-Infinity;
+    for(const oi of oLine)best=Math.max(best,pairScoreBySlots(playerRoster,pi,opponentRoster,oi,state.playerBuilds,state.opponentBuilds));
+    total+=best;
+  }
+  return total/pLine.length;
+}
+
+const DUEL_CACHE=new Map();
+function buildCacheSignature(roster,index,builds){
+  const id=roster[index],b=normalizeBuild(POKEMON[id],builds?.[index]);
+  return [id,b.level,b.atkIV,b.defIV,b.hpIV,b.fast,...b.charged].join(":");
+}
+function stringHash(value){let h=2166136261;for(const ch of String(value)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+function headToHeadBySlots(playerIndex,opponentIndex){
+  const pSig=buildCacheSignature(state.playerRoster,playerIndex,state.playerBuilds);
+  const oSig=buildCacheSignature(state.opponentRoster,opponentIndex,state.opponentBuilds);
+  const key=`${pSig}|${oSig}`;
+  if(DUEL_CACHE.has(key))return DUEL_CACHE.get(key);
+  const outcomes=[];
+  for(const shields of [0,1,2]){
+    const seed=stringHash(`${key}|${shields}`);
+    const result=simulateBattle(state.playerRoster,[playerIndex],state.opponentRoster,[opponentIndex],seed,"balanced",false,state.playerBuilds,state.opponentBuilds,{shields});
+    const margin=clamp(result.player.hp-result.opponent.hp,-1,1);
+    outcomes.push({shields,winner:result.winner,margin,seconds:result.seconds});
+  }
+  const wins=outcomes.filter(x=>x.winner==="player").length;
+  const avgMargin=outcomes.reduce((sum,x)=>sum+x.margin,0)/outcomes.length;
+  const score=(wins-1.5)/1.5+avgMargin*.3;
+  const result={wins,losses:3-wins,avgMargin,score,outcomes,record:`同数シールド ${wins}勝${3-wins}敗`};
+  DUEL_CACHE.set(key,result);return result;
+}
+function matchupGrade(duel){
+  if(duel.wins===3)return {label:"かなり有利",cls:"great"};
+  if(duel.wins===2)return {label:"有利",cls:"good"};
+  if(duel.wins===1)return {label:"互角",cls:"even"};
+  if(duel.avgMargin>-.18)return {label:"不利",cls:"bad"};
+  return {label:"かなり不利",cls:"danger"};
+}
+function shieldRecord(duel){return duel.outcomes.map(x=>`${x.shields}-${x.shields}:${x.winner==="player"?"○":"×"}`).join(" / ")}
+function recommendationAnalysis(line){
+  const rows=state.opponentRoster.map((oid,opponentIndex)=>{
+    const candidates=line.map(playerIndex=>({playerIndex,duel:headToHeadBySlots(playerIndex,opponentIndex)})).sort((a,b)=>b.duel.score-a.duel.score);
+    const best=candidates[0],grade=matchupGrade(best.duel);
+    return {opponentIndex,opponent:POKEMON[oid].name,playerIndex:best.playerIndex,player:POKEMON[state.playerRoster[best.playerIndex]].name,score:best.duel.score,grade,duel:best.duel,record:shieldRecord(best.duel),all:candidates};
   });
-  return lead*.48+(coverage.reduce((a,b)=>a+b,0)/3)*.26+(pressure.reduce((a,b)=>a+b,0)/3)*.10+worstCoverage*.10+Math.max(...safe)*.06;
-}
-function uniqueLines(lines){const seen=new Set();return lines.filter(line=>{const key=line.join("-");if(seen.has(key))return false;seen.add(key);return true})}
-function opponentSamplesFor(playerLine,allOpponentLines){
-  const ranked=[...allOpponentLines].sort((a,b)=>lineupHeuristic(state.opponentRoster,b,state.playerRoster,playerLine)-lineupHeuristic(state.opponentRoster,a,state.playerRoster,playerLine));
-  const samples=[...ranked.slice(0,5)];
-  if(state.opponentPicks.length===3)samples.push([...state.opponentPicks]);
-  for(let i=0;i<ranked.length&&samples.length<14;i+=Math.max(1,Math.floor(ranked.length/10)))samples.push(ranked[i]);
-  return uniqueLines(samples).slice(0,14);
-}
-function simulateLineEstimate(playerLine,opponentLines,seed,style){
-  let wins=0,total=0,alive=0;
-  opponentLines.forEach((oLine,j)=>{
-    for(let k=0;k<3;k++){
-      const result=simulateBattle(state.playerRoster,playerLine,state.opponentRoster,oLine,seed+j*17+k*1009,style,false,state.playerBuilds,state.opponentBuilds);
-      wins+=result.winner==="player"?1:0;alive+=result.player.alive;total++;
-    }
-  });
-  return {winPct:total?wins/total*100:0,avgAlive:total?alive/total:0,total};
-}
-function bestCounterName(playerLine,opponentIndex){
-  const oid=state.opponentRoster[opponentIndex];
-  let best=playerLine[0],score=-Infinity;
-  for(const index of playerLine){const s=pairScoreById(state.playerRoster[index],oid);if(s>score){score=s;best=index}}
-  return {player:POKEMON[state.playerRoster[best]].name,opponent:POKEMON[oid].name,score};
-}
-function recommendationReasons(line){
-  const pIds=line.map(i=>state.playerRoster[i]);
-  const oIds=state.opponentRoster;
-  const leadAverages=line.map(index=>({index,score:oIds.reduce((sum,oid)=>sum+pairScoreById(state.playerRoster[index],oid),0)/oIds.length})).sort((a,b)=>b.score-a.score);
-  const threatScores=oIds.map((oid,index)=>({index,score:Math.max(...pIds.map(pid=>pairScoreById(pid,oid)))})).sort((a,b)=>a.score-b.score);
-  const threat=bestCounterName(line,threatScores[0].index);
-  const coverageCount=oIds.filter(oid=>Math.max(...pIds.map(pid=>pairScoreById(pid,oid)))>0.03).length;
-  const backs=line.slice(1).map(index=>{
-    const p=POKEMON[state.playerRoster[index]];
-    const worst=Math.min(...oIds.map(oid=>pairScoreById(state.playerRoster[index],oid)));
-    return {index,value:Math.log(Math.max(1,p.def*p.hp))+worst*3};
-  }).sort((a,b)=>b.value-a.value);
-  const reasons=[];
-  reasons.push(`🎯 ${POKEMON[state.playerRoster[line[0]]].name}先発で、相手6体への平均圧力を確保`);
-  reasons.push(`🧯 ${threat.player}が警戒枠の${threat.opponent}への回答役`);
-  reasons.push(`🧩 3体で相手6体中${coverageCount}体にプラス評価を作れる構成`);
-  if(backs[0])reasons.push(`🛟 ${POKEMON[state.playerRoster[backs[0].index]].name}は裏のクッション役として比較的安定`);
-  if(leadAverages[0].index!==line[0])reasons.push(`💡 平均相性だけなら${POKEMON[state.playerRoster[leadAverages[0].index]].name}先発も候補`);
-  return reasons.slice(0,4);
+  const leadIndex=line[0],leadName=POKEMON[state.playerRoster[leadIndex]].name;
+  const leadRows=state.opponentRoster.map((oid,i)=>({name:POKEMON[oid].name,duel:headToHeadBySlots(leadIndex,i)}));
+  const leadWins=leadRows.filter(x=>x.duel.wins>=2).sort((a,b)=>b.duel.score-a.duel.score).map(x=>x.name);
+  const leadLosses=leadRows.filter(x=>x.duel.wins===0).sort((a,b)=>a.duel.score-b.duel.score).map(x=>x.name);
+  const hard=rows.filter(x=>x.duel.wins===0).sort((a,b)=>a.score-b.score);
+  const bullets=[];
+  bullets.push(leadWins.length?`先発${leadName}は、同数シールド検証で${leadWins.slice(0,3).join("・")}に2勝以上しています。`:`先発${leadName}は、相手6体に対して同数シールド2勝以上の明確な有利対面がありません。`);
+  if(leadLosses.length)bullets.push(`${leadName}が0勝3敗となる${leadLosses.slice(0,2).join("・")}には、裏のポケモンを合わせる想定です。`);
+  const strong=rows.filter(x=>x.duel.wins>=2).sort((a,b)=>b.score-a.score).slice(0,3);
+  if(strong.length)bullets.push(strong.map(x=>`${x.player}→${x.opponent}（${x.duel.wins}勝${x.duel.losses}敗）`).join("、")+"が主な有利対面です。");
+  bullets.push(hard.length?`${hard[0].opponent}が最も重く、選出内の最善回答${hard[0].player}でも${hard[0].duel.record}です。`:`相手6体すべてに、同数シールドで少なくとも1勝できる回答を確保しています。`);
+  return {bullets,rows};
 }
 function renderRecommendations(results,currentEstimate=null){
   const panel=document.getElementById("recommendationPanel");panel.hidden=false;
-  panel.innerHTML=`<div class="recommendation-heading"><div><p class="step">SELECTION ADVISER</p><h3>勝ち筋が太い選出候補 ✨</h3></div><span class="status-chip">相手の全60選出を想定</span></div><p class="recommendation-intro">相手の6体から考えられる選出を広く評価し、上位候補を実戦AIで再シミュレーションしました。勝率は推定値です。</p>`;
+  panel.innerHTML=`<div class="recommendation-heading"><div><p class="step">SELECTION COACH</p><h3>勝ち筋が太い選出候補 ✨</h3></div><span class="status-chip">相手の全60選出を想定</span></div><p class="recommendation-intro">勝率だけでなく、相手6体それぞれに誰を当てる想定かを表示します。「有利・不利」は0・1・2枚の同数シールドで行う1対1シミュレーション結果です。</p>`;
   const grid=document.createElement("div");grid.className="recommendation-grid";
   results.forEach((result,rank)=>{
     const card=document.createElement("article");card.className="recommendation-card";
     const delta=currentEstimate==null?null:result.winPct-currentEstimate;
+    const analysis=result.analysis||recommendationAnalysis(result.line);
     card.innerHTML=`
       <div class="recommendation-top"><span class="recommendation-rank">${rank===0?"👑 BEST":`#${rank+1}`}</span><strong>${result.winPct.toFixed(1)}%</strong></div>
       <div class="recommended-line">${result.line.map((i,j)=>`<span>${j===0?"先発":"控え"} ${escapeHtml(POKEMON[state.playerRoster[i]].name)}</span>`).join("")}</div>
       ${delta==null?"":`<p class="delta ${delta>=0?"positive":"negative"}">現在選出比 ${delta>=0?"+":""}${delta.toFixed(1)}pt</p>`}
-      <div class="reason-list">${result.reasons.map(reason=>`<span class="reason-chip">${escapeHtml(reason)}</span>`).join("")}</div>
+      <div class="reason-list">${analysis.bullets.map(reason=>`<p>${escapeHtml(reason)}</p>`).join("")}</div>
+      <div class="coverage-board"><h4>相手6体への回答</h4>${analysis.rows.map(row=>`<div class="coverage-row"><span>${escapeHtml(row.opponent)}</span><span class="coverage-arrow">←</span><strong>${escapeHtml(row.player)}</strong><em class="matchup-${row.grade.cls}">${row.grade.label}<small>${escapeHtml(row.record)}</small></em></div>`).join("")}</div>
       <button class="apply-recommendation primary-button" data-line="${result.line.join(",")}" type="button">この選出を使う</button>`;
     grid.appendChild(card);
   });
   panel.appendChild(grid);
 }
+
 function estimateCurrentAcrossUnknown(seed,style){
   if(state.playerPicks.length!==3)return null;
   const opponentLines=opponentSamplesFor(state.playerPicks,lineupPermutations());
@@ -541,7 +558,7 @@ function analyzeSelections(){
     const validated=candidates.map((line,index)=>{
       const samples=opponentSamplesFor(line,opponentLines);
       const estimate=simulateLineEstimate(line,samples,seed+index*10000,style);
-      return {line,...estimate,reasons:recommendationReasons(line)};
+      return {line,...estimate,analysis:recommendationAnalysis(line)};
     }).sort((a,b)=>b.winPct-a.winPct||b.avgAlive-a.avgAlive);
     const current=estimateCurrentAcrossUnknown(seed,style);
     const top=validated.slice(0,3);
@@ -593,9 +610,9 @@ function renderDataLibrary(query=""){
   const d=DATA_INFO.diagnostics||{},q=String(query).trim().toLowerCase();
   document.getElementById("dataCountChip").textContent=`${DATA_INFO.count}体`;
   document.getElementById("dataMetrics").innerHTML=`<div class="metric"><strong>${DATA_INFO.count}</strong><span>収録ポケモン</span></div><div class="metric"><strong>${d.moveCountFast||0}</strong><span>通常技</span></div><div class="metric"><strong>${d.moveCountCharged||0}</strong><span>ゲージ技</span></div>`;
-  const ids=META_ORDER.filter(id=>{const p=POKEMON[id],hay=[p.name,p.englishName,...p.types.map(typeName),...p.types,FAST_MOVES[p.fast]?.name,...p.charged.map(x=>CHARGED_MOVES[x]?.name)].join(" ").toLowerCase();return !q||hay.includes(q)}).slice(0,q?320:120);
-  document.getElementById("dataList").replaceChildren(...ids.map(id=>{const p=POKEMON[id],b=p.rank1,row=document.createElement("article");row.className="data-row";row.innerHTML=`<span class="data-rank">#${p.rank}</span><div class="data-main"><strong>${escapeHtml(p.name)}</strong><small>${typeChips(p.types)} ${escapeHtml(moveLabel(p))}</small></div><div class="data-build">CP ${b.cp}<br>Lv ${b.level} / IV ${b.atkIV}/${b.defIV}/${b.hpIV}</div>`;return row}));
-  document.getElementById("dataDiagnostics").innerHTML=`<p><strong>データ元:</strong> ${escapeHtml(DATA_INFO.source)}</p><p><strong>基準日:</strong> ${new Date(DATA_INFO.updatedAt).toLocaleDateString("ja-JP")}</p><p><strong>収録:</strong> 通常・フォルム ${d.baseForms||0}、シャドウ ${d.shadowForms||0}</p><p><strong>除外:</strong> ${d.excludedCount||0}件${d.excludedCount?`（${(d.excluded||[]).map(x=>`${escapeHtml(x.id)}: ${escapeHtml(x.reason)}`).join(" / ")}）`:"。数値データ不足による除外はありません。"}</p><p>各個体はCP1500以下でSCPが最大となるレベル・個体値を全4096通りから計算しています。攻撃寄り・CMP寄り・手入力にも切替可能です。</p>`;
+  const ids=META_ORDER.filter(id=>{const p=POKEMON[id],hay=[p.name,p.englishName,...p.types.map(typeName),...p.types,FAST_MOVES[p.fast]?.name,...p.charged.map(x=>CHARGED_MOVES[x]?.name)].join(" ").toLowerCase();return !q||hay.includes(q)}).slice(0,q?DATA_INFO.count:120);
+  document.getElementById("dataList").replaceChildren(...ids.map(id=>{const p=POKEMON[id],b=p.rank1,row=document.createElement("article");row.className="data-row";row.innerHTML=`<span class="data-rank">${p.rank?`#${p.rank}<small>PvPoke</small>`:`—<small>順位未検証</small>`}</span><div class="data-main"><strong>${escapeHtml(p.name)} ${p.metaFeatured?'<span class="meta-inline">環境注目</span>':""}</strong><small>${typeChips(p.types)} ${escapeHtml(moveLabel(p))}</small></div><div class="data-build">CP ${b.cp}<br>Lv ${b.level} / IV ${b.atkIV}/${b.defIV}/${b.hpIV}</div>`;return row}));
+  document.getElementById("dataDiagnostics").innerHTML=`<p><strong>データ元:</strong> ${escapeHtml(DATA_INFO.source)}</p><p><strong>順位:</strong> ${escapeHtml(EMBEDDED.rankLabel||"PvPoke総合順位")}</p><p>${escapeHtml(EMBEDDED.metaNote||"")}</p><p><strong>基準日:</strong> ${new Date(DATA_INFO.updatedAt).toLocaleDateString("ja-JP")}</p><p><strong>収録:</strong> 通常・フォルム ${d.baseForms||0}、シャドウ ${d.shadowForms||0}</p><p><strong>除外:</strong> ${d.excludedCount||0}件${d.excludedCount?`（${(d.excluded||[]).map(x=>`${escapeHtml(x.id)}: ${escapeHtml(x.reason)}`).join(" / ")}）`:"。数値データ不足による除外はありません。"}</p><p>各個体はCP1500以下でSCPが最大となるレベル・個体値を全4096通りから計算しています。攻撃寄り・CMP寄り・手入力にも切替可能です。</p>`;
 }
 
 function targetWins(){return Math.ceil(Number(state.format)/2)}

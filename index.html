@@ -7,14 +7,14 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="PJCS Sim" />
-  <title>PJCS Pokémon GO Simulator v0.4</title>
+  <title>PJCS Pokémon GO Simulator v0.5</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="app-header">
     <div>
-      <p class="eyebrow">POKÉMON GO / EMBEDDED DATA EDITION</p>
+      <p class="eyebrow">POKÉMON GO / PJCS TRAINING LAB</p>
       <h1>PJCS Simulator</h1>
     </div>
     <button id="resetAll" class="ghost-button" type="button">初期化</button>
@@ -42,7 +42,7 @@
         <div><p class="step">STEP 1</p><h2>両者の6体を登録</h2></div>
         <span id="poolChip" class="status-chip">読み込み中</span>
       </div>
-      <p class="lead">SL向け320体を内蔵しています。各枠の「変更」でポケモン、「個体・技」でレベル・個体値・技を変更できます。</p>
+      <p class="lead">SL向け321体を内蔵しています。PvPoke総合シミュレーション順位は確認できた収録ポケモンだけに表示し、使用率とは明確に区別しています。各枠の「変更」でポケモン、「個体・技」でレベル・個体値・技を変更できます。</p>
       <div class="two-column">
         <section class="team-card"><div class="team-card-header"><h3>あなた</h3><span id="playerReady" class="mini-status">6 / 6</span></div><div id="playerRoster" class="roster-grid"></div></section>
         <section class="team-card"><div class="team-card-header"><h3>相手</h3><span id="opponentReady" class="mini-status">6 / 6</span></div><div id="opponentRoster" class="roster-grid"></div></section>
@@ -81,7 +81,7 @@
       <div class="button-row three"><button id="runBattle" class="primary-button" type="button">1試合を自動対戦</button><button id="runBatch" class="secondary-button" type="button">100試合で勝率分析</button><button id="analyzeSelections" class="spark-button" type="button">✨ 勝てる選出を探す</button></div>
       <section id="battleResult" class="result-card" aria-live="polite"><p>選出を確定すると自動対戦できます。</p></section>
       <section id="recommendationPanel" class="recommendation-panel" hidden aria-live="polite"></section>
-      <details class="log-card"><summary>ターンログを見る</summary><ol id="battleLog" class="battle-log"></ol></details>
+      <details class="log-card"><summary>技タイミング付きログを見る</summary><ol id="battleLog" class="battle-log"></ol></details>
     </section>
 
     <section id="match" class="panel">
@@ -94,8 +94,8 @@
     </section>
 
     <section id="data" class="panel">
-      <div class="section-heading"><div><p class="step">DATA LIBRARY</p><h2>内蔵ポケモン一覧</h2></div><span id="dataCountChip" class="status-chip">320体</span></div>
-      <p class="lead">外部通信なしで使える固定スナップショットです。順位は公式使用率ではなく、競技環境を意識した収録順です。</p>
+      <div class="section-heading"><div><p class="step">DATA LIBRARY</p><h2>内蔵ポケモン一覧</h2></div><span id="dataCountChip" class="status-chip">321体</span></div>
+      <p class="lead">外部通信なしで使える固定スナップショットです。表示される順位はPvPokeの総合シミュレーション順位で、使用率ではありません。順位を確認できない収録ポケモンには番号を付けません。2026年7月の公開環境記事で言及されたポケモンには「環境注目」を表示します。</p>
       <div id="dataMetrics" class="metric-row data-metrics"></div>
       <label class="search-control">名前・タイプ・技で検索<input id="dataSearch" type="search" placeholder="例：マリルリ / water / きんぞくおん" autocomplete="off" /></label>
       <div id="dataList" class="data-list"></div>
@@ -134,7 +134,7 @@
     <p id="buildMessage" class="message" aria-live="polite"></p>
   </dialog>
 
-  <footer class="app-footer">PJCS training simulator v0.4 / 320 Pokémon embedded / IV & move editor</footer>
+  <footer class="app-footer">PJCS training simulator v0.5 / 321 Pokémon embedded / IV & move editor</footer>
   <script src="embedded-data.js"></script>
   <script src="app.js" defer></script>
 </body>
