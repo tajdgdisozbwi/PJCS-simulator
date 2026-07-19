@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="PJCS Sim" />
-  <title>PJCS Pokémon GO Simulator v0.8</title>
+  <title>PJCS Pokémon GO Simulator v0.9</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -42,7 +42,7 @@
         <div><p class="step">STEP 1</p><h2>あなたの6体を登録</h2></div>
         <span id="poolChip" class="status-chip">読み込み中</span>
       </div>
-      <p class="lead">あなた側は空の6枠から登録します。相手側は2026年7月の最新メタ候補、実際の9シールド対面、技範囲、耐性、引き先・締め役適性を評価して自動生成します。新しいマッチごとに、強さを維持しながら一部の構成が変化します。</p>
+      <p class="lead">あなた側は空の6枠から登録します。相手側は2026年7月の最新メタ上位120体を候補とし、技範囲、倍率、耐性、引き先・締め役適性、9シールド対面を評価して自動生成します。新しいマッチごとに、強さを維持しながら一部の構成が変化します。</p>
       <div class="two-column">
         <section class="team-card"><div class="team-card-header"><h3>あなた</h3><span id="playerReady" class="mini-status">6 / 6</span></div><div id="playerRoster" class="roster-grid"></div></section>
         <section class="team-card opponent-auto-card"><div class="team-card-header"><div><h3>相手AI</h3><small>最新メタから自動構築・手動変更なし</small></div><span id="opponentReady" class="mini-status">AI自動生成</span></div><div id="opponentGenerationInfo" class="opponent-generation-info"></div><div id="opponentRoster" class="roster-grid"></div><button id="regenerateOpponent" class="secondary-button full" type="button">相手6体を再生成</button></section>
@@ -108,7 +108,7 @@
 
     <section id="data" class="panel">
       <div class="section-heading"><div><p class="step">DATA LIBRARY</p><h2>内蔵ポケモン一覧</h2></div><span id="dataCountChip" class="status-chip">321体</span></div>
-      <p class="lead">外部通信なしで使える固定スナップショットです。表示される順位はPvPokeの総合シミュレーション順位で、使用率ではありません。順位を確認できない収録ポケモンには番号を付けません。2026年7月19日のPvPoke順位と2026年7月17日の環境記事を反映しています。ユレイドルも現行PvPoke44位として収録・評価対象です。ポケモン画像はPokéAPIの外部スプライトを読み込み、取得できない場合は文字アイコンへ切り替わります。</p>
+      <p class="lead">外部通信なしで使える固定スナップショットです。表示される順位はPvPokeの総合シミュレーション順位で、使用率ではありません。順位を確認できない収録ポケモンには番号を付けません。起動時に現行PvPokeのランキングJSONを取得し、収録ポケモンの推奨技と順位を合法技データへ照合します。通信できない場合は内蔵スナップショットへ戻ります。ポケモン画像はPokéAPIの外部スプライトを読み込み、取得できない場合は文字アイコンへ切り替わります。</p>
       <div id="dataMetrics" class="metric-row data-metrics"></div>
       <label class="search-control">名前・タイプ・技で検索<input id="dataSearch" type="search" placeholder="例：マリルリ / water / きんぞくおん" autocomplete="off" /></label>
       <div id="dataList" class="data-list"></div>
@@ -147,7 +147,7 @@
     <p id="buildMessage" class="message" aria-live="polite"></p>
   </dialog>
 
-  <footer class="app-footer">PJCS training simulator v0.8 / transparent selection analysis / sprite thumbnails</footer>
+  <footer class="app-footer">PJCS training simulator v0.9 / transparent selection analysis / sprite thumbnails</footer>
   <script src="embedded-data.js"></script>
   <script src="app.js" defer></script>
 </body>

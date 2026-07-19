@@ -1,7 +1,7 @@
 {
-  "name": "PJCS Training Lab v0.8",
+  "name": "PJCS Training Lab v0.9",
   "short_name": "PJCS Lab",
-  "start_url": "./index.html?v=8",
+  "start_url": "./index.html?v=9",
   "display": "standalone",
   "background_color": "#071225",
   "theme_color": "#0d1b34",
