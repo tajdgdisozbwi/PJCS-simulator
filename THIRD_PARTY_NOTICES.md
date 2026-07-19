@@ -1,8 +1,9 @@
 # Third-party notices
 
-This app may display Pokémon sprite thumbnails from the public PokéAPI sprites repository at runtime.
+This app may display Pokémon sprite thumbnails from public sprite repositories at runtime.
 
-- Repository: PokeAPI/sprites
+- PokéAPI sprites repository
+- Pokémon Showdown sprite repository (used for some regional and alternate forms)
 - Images are not bundled in this ZIP.
 - Pokémon and related images are owned by their respective rights holders.
-- If the external image cannot be loaded, the app shows a text fallback icon.
+- If an external image cannot be loaded or a form is not verified, the app shows a text fallback icon instead of a potentially incorrect image.

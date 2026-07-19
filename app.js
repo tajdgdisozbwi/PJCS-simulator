@@ -1,7 +1,7 @@
 "use strict";
 
-const STORAGE_KEY = "pjcs-simulator-v06";
-const OLD_STORAGE_KEYS = ["pjcs-simulator-v05","pjcs-simulator-v04","pjcs-simulator-v03","pjcs-simulator-v02"];
+const STORAGE_KEY = "pjcs-simulator-v07";
+const OLD_STORAGE_KEYS = ["pjcs-simulator-v06","pjcs-simulator-v05","pjcs-simulator-v04","pjcs-simulator-v03","pjcs-simulator-v02"];
 const TURN_MS = 500;
 const SWITCH_COOLDOWN_TURNS = 90;
 const MAX_TURNS = 540;
@@ -92,7 +92,7 @@ function localizedSpeciesName(p){
 }
 
 function defaultState(){
-  return {playerRoster:[...PLAYER_DEFAULT],opponentRoster:[...OPPONENT_DEFAULT],playerBuilds:Array(6).fill(null),opponentBuilds:Array(6).fill(null),playerPicks:[],opponentPicks:[],format:3,playerScore:0,opponentScore:0,gameNumber:1,history:[],lastBattle:null,lastRecommendations:null};
+  return {playerRoster:[...PLAYER_DEFAULT],opponentRoster:[...OPPONENT_DEFAULT],playerBuilds:Array(6).fill(null),opponentBuilds:Array(6).fill(null),playerPicks:[],opponentPicks:[],opponentSelectionMeta:null,opponentRevealed:false,format:3,playerScore:0,opponentScore:0,gameNumber:1,history:[],lastBattle:null,lastRecommendations:null};
 }
 function loadState(){
   try{
@@ -101,12 +101,13 @@ function loadState(){
     return parsed?{...defaultState(),...parsed}:defaultState();
   }catch{return defaultState();}
 }
-function saveState(){ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }
+function saveState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch{}}
 let state=loadState();
 let timerId=null;
 let timerValue=90;
 let dialogTarget=null;
 let buildTarget=null;
+let opponentAiComputing=false;
 
 function setDataBanner(title,text,kind="loading"){
   const banner=document.getElementById("dataBanner");
@@ -184,6 +185,8 @@ function repairStateRosters(){
   state.opponentBuilds=Array.from({length:6},(_,i)=>state.opponentBuilds?.[i]||null);
   state.playerPicks=(state.playerPicks||[]).filter(i=>i>=0&&i<6).slice(0,3);
   state.opponentPicks=(state.opponentPicks||[]).filter(i=>i>=0&&i<6).slice(0,3);
+  state.opponentRevealed=Boolean(state.opponentRevealed);
+  if(!state.opponentSelectionMeta||state.opponentSelectionMeta.version!==7)state.opponentSelectionMeta=null;
   saveState();
 }
 function hydrateEmbeddedData(){
@@ -460,7 +463,7 @@ function chooseDialogPokemon(id){
   const key=dialogTarget.side==="player"?"playerRoster":"opponentRoster";
   state[key][dialogTarget.index]=id;
   state[buildsKey(dialogTarget.side)][dialogTarget.index]=null;
-  state.playerPicks=[];state.opponentPicks=[];state.lastRecommendations=null;
+  state.playerPicks=[];state.opponentPicks=[];state.opponentSelectionMeta=null;state.opponentRevealed=false;state.lastRecommendations=null;clearAnalysisCaches();
   saveState();renderAll();
   document.getElementById("pokemonDialog").close();dialogTarget=null;
 }
@@ -476,14 +479,25 @@ function renderPickGrid(id,roster,picks,side){
   }));
 }
 function renderSelection(){
-  renderPickGrid("playerSelection",state.playerRoster,state.playerPicks,"player");renderPickGrid("opponentSelection",state.opponentRoster,state.opponentPicks,"opponent");
+  renderPickGrid("playerSelection",state.playerRoster,state.playerPicks,"player");
   document.getElementById("playerSelectionSummary").textContent=selectionNames(state.playerRoster,state.playerPicks)||"未選択";
-  document.getElementById("opponentSelectionSummary").textContent=selectionNames(state.opponentRoster,state.opponentPicks)||"未選択";
+  renderOpponentAiPanel();
+  if(!opponentSelectionIsFresh()&&!opponentAiComputing)ensureOpponentSelection();
 }
 function selectionNames(roster,picks){return picks.map(i=>POKEMON[roster[i]]?.name||"?").join(" → ")}
-function togglePick(side,index){const key=side==="player"?"playerPicks":"opponentPicks",arr=state[key],at=arr.indexOf(index);if(at>=0)arr.splice(at,1);else if(arr.length<3)arr.push(index);state.lastRecommendations=null;saveState();renderSelection();renderBattleLineups();renderMatch()}
-function renderLineup(id,roster,picks){const root=document.getElementById(id);const items=picks.map((i,j)=>{const span=document.createElement("span");span.className="lineup-pill";span.textContent=`${j===0?"先発":`控え${j}`} ${POKEMON[roster[i]]?.name||"?"}`;return span});root.replaceChildren(...items);if(!items.length)root.textContent="未確定"}
-function renderBattleLineups(){renderLineup("battlePlayerLineup",state.playerRoster,state.playerPicks);renderLineup("battleOpponentLineup",state.opponentRoster,state.opponentPicks)}
+function togglePick(side,index){
+  if(side!=="player")return;
+  const arr=state.playerPicks,at=arr.indexOf(index);
+  if(at>=0)arr.splice(at,1);else if(arr.length<3)arr.push(index);
+  state.opponentRevealed=false;state.lastRecommendations=null;saveState();renderSelection();renderBattleLineups();renderMatch();
+}
+function renderLineup(id,roster,picks){const root=document.getElementById(id);const items=picks.map((i,j)=>{const span=document.createElement("span");span.className="lineup-pill";span.textContent=`${j===0?"先発":j===1?"引き先候補":"締め役"} ${POKEMON[roster[i]]?.name||"?"}`;return span});root.replaceChildren(...items);if(!items.length)root.textContent="未確定"}
+function renderHiddenLineup(id){const root=document.getElementById(id);root.replaceChildren();const span=document.createElement("span");span.className="lineup-pill lineup-hidden";span.textContent="選出確定まで非公開";root.appendChild(span)}
+function renderBattleLineups(){
+  renderLineup("battlePlayerLineup",state.playerRoster,state.playerPicks);
+  if(state.opponentRevealed)renderLineup("battleOpponentLineup",state.opponentRoster,state.opponentPicks);else renderHiddenLineup("battleOpponentLineup");
+  renderOpponentBattleReason();
+}
 
 function showResult(result,batch=null){
   const box=document.getElementById("battleResult");box.className=`result-card ${result.winner==="player"?"win":"loss"}`;
@@ -494,15 +508,16 @@ function showResult(result,batch=null){
   const log=document.getElementById("battleLog");log.replaceChildren(...result.log.map(text=>{const li=document.createElement("li");li.textContent=text;return li}));if(!result.log.length){const li=document.createElement("li");li.textContent="ログなし";log.appendChild(li)}
 }
 function validPicks(){return state.playerPicks.length===3&&state.opponentPicks.length===3}
+function readyForBattle(){return validPicks()&&state.opponentRevealed}
 function currentSeed(){return Number(document.getElementById("seedInput").value)||20260719}
 function currentStyle(){return document.getElementById("aiStyle").value}
 function runOne(record=false){
-  if(!validPicks()){switchTab("selection");document.getElementById("selectionMessage").textContent="両者とも3体を選んでください。";return null}
+  if(!readyForBattle()){switchTab("selection");document.getElementById("selectionMessage").textContent="自分の3体を確定し、相手AIの選出を公開してください。";return null}
   const result=simulateBattle(state.playerRoster,state.playerPicks,state.opponentRoster,state.opponentPicks,currentSeed()+state.gameNumber-1,currentStyle(),true,state.playerBuilds,state.opponentBuilds);
   state.lastBattle=result;saveState();showResult(result);if(record)recordSimulatedWinner(result);return result;
 }
 function runBatch(){
-  if(!validPicks()){switchTab("selection");document.getElementById("selectionMessage").textContent="両者とも3体を選んでください。";return}
+  if(!readyForBattle()){switchTab("selection");document.getElementById("selectionMessage").textContent="自分の3体を確定し、相手AIの選出を公開してください。";return}
   const button=document.getElementById("runBatch");button.disabled=true;button.textContent="100試合を計算中…";
   setTimeout(()=>{
     const seed=currentSeed(),style=currentStyle();let pw=0,ow=0,sec=0,aliveSum=0;
@@ -542,6 +557,9 @@ function simulateLineEstimate(line,opponentLines,seed,style,repeats=3){
 }
 
 const DUEL_CACHE=new Map();
+const OPPONENT_DUEL_CACHE=new Map();
+const OPPONENT_ROLE_CACHE=new Map();
+function clearAnalysisCaches(){DUEL_CACHE.clear();OPPONENT_DUEL_CACHE.clear();OPPONENT_ROLE_CACHE.clear()}
 function buildCacheSignature(roster,index,builds){
   const id=roster[index],b=normalizeBuild(POKEMON[id],builds?.[index]);
   return [id,b.level,b.atkIV,b.defIV,b.hpIV,b.fast,...b.charged].join(":");
@@ -573,6 +591,192 @@ function matchupGrade(duel){
   return {label:"かなり不利",cls:"danger"};
 }
 function shieldRecord(duel){return duel.outcomes.map(x=>`${x.shields}-${x.shields}:${x.winner==="player"?"○":"×"}`).join(" / ")}
+
+function opponentSelectionSignature(){
+  const sideSig=side=>state[rosterKey(side)].map((id,index)=>buildCacheSignature(state[rosterKey(side)],index,state[buildsKey(side)])).join("|");
+  return `${sideSig("player")}::${sideSig("opponent")}`;
+}
+function opponentSelectionIsFresh(){
+  return Boolean(state.opponentSelectionMeta?.version===7&&state.opponentSelectionMeta?.signature===opponentSelectionSignature()&&state.opponentPicks.length===3);
+}
+function opponentDuel(opponentIndex,playerIndex){
+  const key=`${playerIndex}:${opponentIndex}`;
+  if(OPPONENT_DUEL_CACHE.has(key))return OPPONENT_DUEL_CACHE.get(key);
+  const duel=headToHeadBySlots(playerIndex,opponentIndex);
+  const outcomes=duel.outcomes.map(x=>({...x,winner:x.winner==="opponent"?"opponent":"player",margin:-x.margin}));
+  const result={wins:duel.losses,losses:duel.wins,avgMargin:-duel.avgMargin,score:-duel.score,outcomes,record:`同数シールド ${duel.losses}勝${duel.wins}敗`};
+  OPPONENT_DUEL_CACHE.set(key,result);return result;
+}
+function opponentShieldRecord(duel){return duel.outcomes.map(x=>`${x.shields}-${x.shields}:${x.winner==="opponent"?"○":"×"}`).join(" / ")}
+function firstChargedTurns(mon,move){
+  const fast=fastObject(mon);
+  if(!fast||!move||safeNumber(fast.energy)<=0)return Infinity;
+  return Math.ceil(move.energy/fast.energy)*fast.turns;
+}
+function fastestChargedProfile(mon){
+  const moves=chargedObjects(mon).map(move=>({move,turns:firstChargedTurns(mon,move)})).sort((a,b)=>a.turns-b.turns||a.move.energy-b.move.energy);
+  return moves[0]||null;
+}
+function bestPressureMove(attacker,defender){
+  return chargedObjects(attacker).map(move=>({move,damage:calcDamage(attacker,defender,move),eff:effectiveness(move.type,defender.types),turns:firstChargedTurns(attacker,move)})).sort((a,b)=>(b.damage/Math.max(1,b.move.energy))-(a.damage/Math.max(1,a.move.energy))||b.damage-a.damage)[0]||null;
+}
+function moveEffectText(effect){
+  if(!effect)return "";
+  const stat=effect.stat==="attack"?"攻撃":"防御";
+  const who=effect.target==="opponent"?"相手":"自分";
+  return `${who}の${stat}${effect.delta>0?"上昇":"低下"}`;
+}
+function opponentMatchupReasons(opponentIndex,playerIndex){
+  const attacker=effectivePokemon("opponent",opponentIndex),defender=effectivePokemon("player",playerIndex);
+  if(!attacker||!defender)return [];
+  const reasons=[],fast=fastObject(attacker),playerFast=fastObject(defender),pressure=bestPressureMove(attacker,defender);
+  const fastEff=effectiveness(fast.type,defender.types),incomingFastEff=effectiveness(playerFast.type,attacker.types);
+  if(fastEff>1.01)reasons.push(`通常技「${fast.name}」が効果抜群`);
+  if(pressure?.eff>1.01)reasons.push(`ゲージ技「${pressure.move.name}」が効果抜群`);
+  if(Number.isFinite(pressure?.turns))reasons.push(`「${pressure.move.name}」まで約${pressure.turns}ターン（${(pressure.turns*TURN_MS/1000).toFixed(1)}秒）`);
+  if(incomingFastEff<.99)reasons.push(`${defender.name}の通常技「${playerFast.name}」を軽減`);
+  const resistedCharged=chargedObjects(defender).filter(move=>effectiveness(move.type,attacker.types)<.99);
+  if(resistedCharged.length)reasons.push(`${defender.name}の「${resistedCharged.slice(0,2).map(x=>x.name).join("・")}」を軽減`);
+  if(attackStat(attacker)>attackStat(defender)*1.01)reasons.push("同時にゲージ技を押した場合はCMPを取りやすい");
+  const effectMove=chargedObjects(attacker).find(move=>(move.effects||[]).length);
+  if(effectMove)reasons.push(`「${effectMove.name}」の${moveEffectText(effectMove.effects[0])}も勝敗へ影響`);
+  if(attacker.shadow)reasons.push("シャドウ補正で与ダメージが高い");
+  if(!reasons.length)reasons.push("タイプだけでなく、技回転・耐久・実ダメージの総合で有利");
+  return reasons.slice(0,4);
+}
+function opponentRoleMetrics(opponentIndex){
+  if(OPPONENT_ROLE_CACHE.has(opponentIndex))return OPPONENT_ROLE_CACHE.get(opponentIndex);
+  const mon=effectivePokemon("opponent",opponentIndex);
+  const duels=state.playerRoster.map((_,playerIndex)=>({playerIndex,duel:opponentDuel(opponentIndex,playerIndex)}));
+  const favorable=duels.filter(x=>x.duel.wins>=2),neutral=duels.filter(x=>x.duel.wins===1),hard=duels.filter(x=>x.duel.wins===0);
+  const zeroShieldWins=duels.filter(x=>x.duel.outcomes[0]?.winner==="opponent");
+  const oneShieldWins=duels.filter(x=>x.duel.outcomes[1]?.winner==="opponent");
+  const avgScore=duels.reduce((sum,x)=>sum+x.duel.score,0)/duels.length;
+  const fastest=fastestChargedProfile(mon);
+  const speedBonus=Number.isFinite(fastest?.turns)?Math.max(0,(24-fastest.turns)/24):0;
+  const result={
+    opponentIndex,mon,duels,favorable,neutral,hard,zeroShieldWins,oneShieldWins,avgScore,fastest,
+    leadScore:favorable.length*1.45+neutral.length*.25-hard.length*1.4+avgScore,
+    safeScore:favorable.length*1.7+neutral.length*.65-hard.length*1.75+avgScore+speedBonus,
+    closerScore:zeroShieldWins.length*1.7+oneShieldWins.length*.55-hard.length*.55+avgScore*.6
+  };
+  OPPONENT_ROLE_CACHE.set(opponentIndex,result);return result;
+}
+function orderOpponentLine(line){
+  const lead=line[0],a=opponentRoleMetrics(line[1]),b=opponentRoleMetrics(line[2]);
+  if(a.safeScore>b.safeScore)return [lead,line[1],line[2]];
+  if(b.safeScore>a.safeScore)return [lead,line[2],line[1]];
+  return a.closerScore>=b.closerScore?[lead,line[2],line[1]]:[lead,line[1],line[2]];
+}
+function opponentLineScreenScore(line,playerLines){
+  const ordered=orderOpponentLine(line);let total=0;
+  for(const pLine of playerLines){
+    const lead=opponentDuel(ordered[0],pLine[0]).score;
+    const coverage=pLine.reduce((sum,playerIndex)=>sum+Math.max(...ordered.map(opponentIndex=>opponentDuel(opponentIndex,playerIndex).score)),0)/pLine.length;
+    const pressure=ordered.reduce((sum,opponentIndex)=>sum+Math.max(...pLine.map(playerIndex=>opponentDuel(opponentIndex,playerIndex).score)),0)/ordered.length;
+    total+=lead*1.2+coverage+pressure*.35;
+  }
+  const safe=opponentRoleMetrics(ordered[1]),closer=opponentRoleMetrics(ordered[2]);
+  return total/playerLines.length+safe.safeScore*.05+closer.closerScore*.04;
+}
+function simulateOpponentLineEstimate(opponentLine,playerLines,seed,style,repeats=2){
+  let wins=0,losses=0,aliveSum=0,secondsSum=0;
+  for(let pi=0;pi<playerLines.length;pi++){
+    for(let repeat=0;repeat<repeats;repeat++){
+      const battleSeed=(seed+pi*1013+repeat*7937)>>>0;
+      const result=simulateBattle(state.playerRoster,playerLines[pi],state.opponentRoster,opponentLine,battleSeed,style,false,state.playerBuilds,state.opponentBuilds);
+      if(result.winner==="opponent")wins++;else losses++;
+      aliveSum+=result.opponent.alive;secondsSum+=result.seconds;
+    }
+  }
+  const total=wins+losses;
+  return {winPct:total?wins/total*100:0,wins,losses,total,avgAlive:total?aliveSum/total:0,avgSeconds:total?secondsSum/total:0,playerLineCount:playerLines.length,repeats};
+}
+function opponentSelectionAnalysis(line){
+  const roleNames=["先発","引き先候補","締め役"];
+  const members=line.map((opponentIndex,roleIndex)=>{
+    const metrics=opponentRoleMetrics(opponentIndex),name=metrics.mon.name;
+    const strong=metrics.duels.filter(x=>x.duel.wins>=2).sort((a,b)=>b.duel.score-a.duel.score).map(x=>({playerIndex:x.playerIndex,player:POKEMON[state.playerRoster[x.playerIndex]].name,duel:x.duel,reasons:opponentMatchupReasons(opponentIndex,x.playerIndex)}));
+    const weak=metrics.duels.filter(x=>x.duel.wins===0).sort((a,b)=>a.duel.score-b.duel.score).map(x=>({playerIndex:x.playerIndex,player:POKEMON[state.playerRoster[x.playerIndex]].name,duel:x.duel}));
+    let roleReason="";
+    if(roleIndex===0){
+      roleReason=`想定初手6体に対して、同数シールドで有利${metrics.favorable.length}・不利寄り${metrics.neutral.length}・明確な不利${metrics.hard.length}。初手対面の平均評価が最も高い候補です。`;
+    }else if(roleIndex===1){
+      const fastText=metrics.fastest?`最速は「${metrics.fastest.move.name}」まで約${metrics.fastest.turns}ターン。`:"";
+      roleReason=`6体中${metrics.favorable.length}体へ明確に有利、${metrics.neutral.length}体へ勝ち筋があり、0勝3敗の相手は${metrics.hard.length}体。${fastText}交代後に追われても技を返しやすいため引き先候補です。`;
+    }else{
+      roleReason=`シールド0枚同士で${metrics.zeroShieldWins.length}/6体、1枚同士で${metrics.oneShieldWins.length}/6体に勝利。終盤のゲージ技圧力と残存HPを活かしやすいため締め役です。`;
+    }
+    return {opponentIndex,roleIndex,role:roleNames[roleIndex],name,metrics,strong,weak,roleReason};
+  });
+  const coverage=state.playerRoster.map((pid,playerIndex)=>{
+    const candidates=line.map(opponentIndex=>({opponentIndex,duel:opponentDuel(opponentIndex,playerIndex)})).sort((a,b)=>b.duel.score-a.duel.score);
+    const best=candidates[0],solid=candidates.filter(x=>x.duel.wins>=2);
+    return {playerIndex,player:POKEMON[pid].name,bestOpponentIndex:best.opponentIndex,bestOpponent:POKEMON[state.opponentRoster[best.opponentIndex]].name,duel:best.duel,solid,reasons:opponentMatchupReasons(best.opponentIndex,playerIndex)};
+  });
+  const heavy=coverage.filter(x=>x.solid.length===0);
+  const narrow=coverage.filter(x=>x.solid.length===1);
+  const warnings=[];
+  if(heavy.length)warnings.push(`${heavy.map(x=>x.player).join("・")}は、選出した3体の誰でも同数シールド2勝以上を取れないため、相手AI側の重いポケモンです。`);
+  if(narrow.length)warnings.push(`${narrow.slice(0,3).map(x=>`${x.player}への明確な回答は${POKEMON[state.opponentRoster[x.solid[0].opponentIndex]].name}だけ`).join("、")}。回答役を先に失うと崩れます。`);
+  if(!warnings.length)warnings.push("あなたの6体すべてに、同数シールドで2勝以上できる回答を1体以上確保しています。");
+  return {members,coverage,heavy,narrow,warnings};
+}
+function computeOpponentSelection(){
+  OPPONENT_DUEL_CACHE.clear();OPPONENT_ROLE_CACHE.clear();
+  const playerLines=lineupPermutations(),opponentLines=lineupPermutations(),seed=stringHash(opponentSelectionSignature()),style="balanced";
+  const screened=opponentLines.map(line=>({line:orderOpponentLine(line),screenScore:opponentLineScreenScore(line,playerLines)})).sort((a,b)=>b.screenScore-a.screenScore);
+  const candidates=uniqueLines(screened.map(x=>x.line)).slice(0,6);
+  const validated=candidates.map((line,index)=>({line,...simulateOpponentLineEstimate(line,playerLines,seed+index*30001,style,2),analysis:opponentSelectionAnalysis(line)})).sort((a,b)=>b.winPct-a.winPct||b.avgAlive-a.avgAlive);
+  const chosen=validated[0];
+  return {version:7,signature:opponentSelectionSignature(),createdAt:Date.now(),line:chosen.line,winPct:chosen.winPct,wins:chosen.wins,losses:chosen.losses,total:chosen.total,playerLineCount:chosen.playerLineCount,repeats:chosen.repeats,avgAlive:chosen.avgAlive,analysis:chosen.analysis,alternatives:validated.slice(1,3).map(x=>({line:x.line,winPct:x.winPct,wins:x.wins,losses:x.losses}))};
+}
+function ensureOpponentSelection(force=false,onReady=null){
+  if(!force&&opponentSelectionIsFresh()){if(typeof onReady==="function")onReady();return}
+  if(opponentAiComputing)return;
+  opponentAiComputing=true;renderOpponentAiPanel();
+  setTimeout(()=>{
+    let success=false;
+    try{
+      const meta=computeOpponentSelection();
+      state.opponentSelectionMeta=meta;state.opponentPicks=[...meta.line];state.opponentRevealed=false;saveState();success=true;
+    }catch(error){
+      console.error(error);state.opponentPicks=[];state.opponentSelectionMeta=null;
+      const message=document.getElementById("selectionMessage");if(message)message.textContent="相手AIの選出計算に失敗しました。6体や技設定を確認してください。";
+    }finally{
+      opponentAiComputing=false;renderSelection();renderBattleLineups();renderMatch();if(success&&typeof onReady==="function")onReady();
+    }
+  },40);
+}
+function opponentAnalysisHtml(meta,compact=false){
+  const a=meta.analysis;
+  const lineup=`<div class="ai-lineup">${meta.line.map((index,i)=>`<div class="ai-lineup-mon"><span>${["先発","引き先候補","締め役"][i]}</span>${pokemonAvatar(effectivePokemon("opponent",index),"pick")}<strong>${escapeHtml(POKEMON[state.opponentRoster[index]].name)}</strong></div>`).join("")}</div>`;
+  const roles=a.members.map(member=>`<article class="ai-role-card"><div class="ai-role-head"><span>${escapeHtml(member.role)}</span><strong>${escapeHtml(member.name)}</strong></div><p>${escapeHtml(member.roleReason)}</p><div class="ai-targets"><b>刺さる相手</b>${member.strong.length?member.strong.slice(0,4).map(target=>`<div><strong>${escapeHtml(target.player)}</strong><span>${escapeHtml(target.duel.record)} / ${escapeHtml(opponentShieldRecord(target.duel))}</span><small>${escapeHtml(target.reasons.join("。"))}</small></div>`).join(""):'<p class="muted">同数シールドで2勝以上の明確な相手はいません。</p>'}</div></article>`).join("");
+  const coverage=`<div class="coverage-board ai-coverage"><h4>あなたの6体への相手AIの回答</h4>${a.coverage.map(row=>`<div class="coverage-row"><span>${escapeHtml(row.player)}</span><span class="coverage-arrow">←</span><strong>${escapeHtml(row.bestOpponent)}</strong><em class="${row.duel.wins>=2?"matchup-great":row.duel.wins===1?"matchup-bad":"matchup-danger"}">${row.duel.wins>=2?"相手有利":row.duel.wins===1?"不利寄り":"重い"}<small>${escapeHtml(opponentShieldRecord(row.duel))}</small></em></div>`).join("")}</div>`;
+  const warnings=`<section class="coach-section heavy-section"><h4>相手AI側の警戒点</h4><ul>${a.warnings.map(x=>`<li>${escapeHtml(x)}</li>`).join("")}</ul></section>`;
+  const alternatives=meta.alternatives?.length?`<details class="ai-alternatives"><summary>次点の相手選出</summary>${meta.alternatives.map((alt,i)=>`<p>#${i+2} ${alt.line.map((index,j)=>`${j===0?"先発":"控え"}${POKEMON[state.opponentRoster[index]].name}`).join(" / ")}：相手側推定勝率 ${alt.winPct.toFixed(1)}%</p>`).join("")}</details>`:"";
+  const basis=`<div class="simulation-basis"><strong>相手側 ${meta.wins}勝 ${meta.losses}敗 / ${meta.total}試合（${meta.winPct.toFixed(1)}%）</strong><span>あなたの60選出を等確率とし、各2乱数で検証。あなたが現在選んだ3体は参照していません。</span></div>`;
+  return `${basis}${lineup}${compact?coverage:`${roles}${coverage}${warnings}${alternatives}`}`;
+}
+function renderOpponentAiPanel(){
+  const status=document.getElementById("opponentAiStatus"),summary=document.getElementById("opponentSelectionSummary"),content=document.getElementById("opponentAiContent");
+  if(!status||!summary||!content)return;
+  if(opponentAiComputing||!opponentSelectionIsFresh()){
+    status.textContent="分析中";summary.textContent="60通りを分析中";content.innerHTML='<div class="analysis-loading"><strong>相手AIが選出中…</strong><span>あなたの6体だけを見て、対面・技回転・引き先性能を比較しています。</span></div>';return;
+  }
+  const meta=state.opponentSelectionMeta;
+  if(!state.opponentRevealed){
+    status.textContent="選出済み・非公開";summary.textContent="AI選出済み（非公開）";
+    content.innerHTML=`<div class="ai-locked"><div class="ai-lock-icon">●</div><strong>相手AIは3体を確定済みです</strong><p>あなたの選出確定後に、3体と選出理由を公開します。現在選んでいる3体はAIへ渡していません。</p><small>評価根拠：あなたの60選出 × 2乱数 / 技・個体値・シールド別対面を考慮</small></div>`;return;
+  }
+  status.textContent="選出公開";summary.textContent=selectionNames(state.opponentRoster,state.opponentPicks);
+  content.innerHTML=opponentAnalysisHtml(meta,false);
+}
+function renderOpponentBattleReason(){
+  const root=document.getElementById("opponentBattleReason");if(!root)return;
+  if(!state.opponentRevealed||!opponentSelectionIsFresh()){root.hidden=true;root.innerHTML="";return}
+  root.hidden=false;root.innerHTML=`<div class="recommendation-heading"><div><p class="step">OPPONENT PICK LOGIC</p><h3>相手AIがこの3体を選んだ理由</h3></div><span class="status-chip">こちらの6体のみ参照</span></div>${opponentAnalysisHtml(state.opponentSelectionMeta,false)}`;
+}
 function lineupScreenScore(line,opponentLines){
   let total=0;
   for(const oLine of opponentLines){
@@ -651,7 +855,7 @@ function analyzeSelections(){
     const validated=candidates.map((line,index)=>({line,...simulateLineEstimate(line,opponentLines,seed+500000+index*20000,style,3),analysis:recommendationAnalysis(line)})).sort((a,b)=>b.winPct-a.winPct||b.avgAlive-a.avgAlive);
     const current=state.playerPicks.length===3?validated.find(x=>x.line.join(",")===state.playerPicks.join(","))?.winPct??estimateCurrentAcrossUnknown(seed,style):null;
     const top=validated.slice(0,3);
-    state.lastRecommendations={createdAt:Date.now(),version:6,results:top};saveState();renderRecommendations(top,current);
+    state.lastRecommendations={createdAt:Date.now(),version:7,results:top};saveState();renderRecommendations(top,current);
     button.disabled=false;button.textContent="✨ 勝てる選出を探す";
   },50);
 }
@@ -693,7 +897,7 @@ function updateBuildPreview(){
 function saveBuildFromDialog(){
   if(!buildTarget)return;const p=POKEMON[state[rosterKey(buildTarget.side)][buildTarget.index]],raw=readBuildForm(),b=normalizeBuild(p,raw);
   if(!b.valid){document.getElementById("buildMessage").textContent="CP1500を超えているため保存できません。";return}
-  state[buildsKey(buildTarget.side)][buildTarget.index]=raw;state.lastRecommendations=null;saveState();renderAll();document.getElementById("buildDialog").close();buildTarget=null;
+  state[buildsKey(buildTarget.side)][buildTarget.index]=raw;state.playerPicks=[];state.opponentPicks=[];state.opponentSelectionMeta=null;state.opponentRevealed=false;state.lastRecommendations=null;clearAnalysisCaches();saveState();renderAll();document.getElementById("buildDialog").close();buildTarget=null;
 }
 function renderDataLibrary(query=""){
   const d=DATA_INFO.diagnostics||{},q=String(query).trim().toLowerCase();
@@ -715,31 +919,31 @@ function recordSimulatedWinner(result){
 }
 function renderMatch(){
   document.getElementById("matchFormat").value=String(state.format);document.getElementById("playerScore").textContent=state.playerScore;document.getElementById("opponentScore").textContent=state.opponentScore;document.getElementById("gameNumber").textContent=`GAME ${state.gameNumber}`;document.getElementById("targetWins").textContent=`${targetWins()}勝先取`;
-  renderLineup("currentPlayerLineup",state.playerRoster,state.playerPicks);renderLineup("currentOpponentLineup",state.opponentRoster,state.opponentPicks);
+  renderLineup("currentPlayerLineup",state.playerRoster,state.playerPicks);if(state.opponentRevealed)renderLineup("currentOpponentLineup",state.opponentRoster,state.opponentPicks);else renderHiddenLineup("currentOpponentLineup");
   const list=document.getElementById("historyList");list.replaceChildren(...state.history.map(h=>{const li=document.createElement("li");li.textContent=`Game ${h.game}: ${h.winner==="player"?"あなた":"相手"}勝利（${h.seconds.toFixed(1)}秒）`;return li}));
   if(!state.history.length){const li=document.createElement("li");li.textContent="まだ結果はありません。";list.appendChild(li)}
   document.getElementById("simulateGame").disabled=matchFinished();document.getElementById("nextSelection").disabled=matchFinished();
   const msg=document.getElementById("matchMessage");msg.textContent=state.playerScore>=targetWins()?"マッチ終了：あなたの勝利 🎉":state.opponentScore>=targetWins()?"マッチ終了：相手の勝利":"";
 }
-function resetMatch(){state.playerScore=0;state.opponentScore=0;state.gameNumber=1;state.history=[];state.playerPicks=[];state.opponentPicks=[];state.lastRecommendations=null;saveState();renderSelection();renderMatch();renderBattleLineups();document.getElementById("recommendationPanel").hidden=true}
+function resetMatch(){state.playerScore=0;state.opponentScore=0;state.gameNumber=1;state.history=[];state.playerPicks=[];state.opponentPicks=[];state.opponentSelectionMeta=null;state.opponentRevealed=false;state.lastRecommendations=null;saveState();renderSelection();renderMatch();renderBattleLineups();document.getElementById("recommendationPanel").hidden=true}
 function resetAll(){if(!confirm("登録・個体値・技・選出・履歴を初期化しますか？"))return;state=defaultState();repairStateRosters();saveState();renderAll();switchTab("roster")}
 
 function switchTab(name){document.querySelectorAll(".tab").forEach(button=>button.classList.toggle("is-active",button.dataset.tab===name));document.querySelectorAll(".panel").forEach(panel=>panel.classList.toggle("is-active",panel.id===name));if(name==="selection")renderSelection();if(name==="battle")renderBattleLineups();if(name==="match")renderMatch();if(name==="data")renderDataLibrary(document.getElementById("dataSearch")?.value||"");window.scrollTo({top:0,behavior:"smooth"})}
 function startTimer(){clearInterval(timerId);timerValue=90;updateTimer();timerId=setInterval(()=>{timerValue--;updateTimer();if(timerValue<=0){clearInterval(timerId);timerId=null;document.getElementById("selectionMessage").textContent="選出時間が終了しました。"}},1000)}
 function updateTimer(){const el=document.getElementById("timer");el.textContent=timerValue;el.closest(".timer-box").classList.toggle("is-low",timerValue<=15)}
-function renderAll(){renderRosters();renderSelection();renderBattleLineups();renderMatch();renderDataLibrary(document.getElementById("dataSearch")?.value||"");updateTimer();if(state.lastRecommendations?.version===6&&state.lastRecommendations?.results?.length)renderRecommendations(state.lastRecommendations.results,null);else state.lastRecommendations=null}
+function renderAll(){renderRosters();renderSelection();renderBattleLineups();renderMatch();renderDataLibrary(document.getElementById("dataSearch")?.value||"");updateTimer();if(state.lastRecommendations?.version===7&&state.lastRecommendations?.results?.length)renderRecommendations(state.lastRecommendations.results,null);else state.lastRecommendations=null}
 
 function applyRecommendation(line){
   const parsed=String(line||"").split(",").map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<6);
   if(parsed.length!==3)return;
-  state.playerPicks=parsed;saveState();renderSelection();renderBattleLineups();renderMatch();
+  state.playerPicks=parsed;state.opponentRevealed=false;saveState();renderSelection();renderBattleLineups();renderMatch();
   document.getElementById("selectionMessage").textContent="おすすめ選出を反映しました ✨";
   switchTab("selection");
 }
 
 function wireEvents(){
   document.querySelectorAll(".tab").forEach(button=>button.addEventListener("click",()=>switchTab(button.dataset.tab)));
-  document.getElementById("saveRosters").addEventListener("click",()=>{const error=validateRosters();document.getElementById("rosterMessage").textContent=error||"保存しました。";if(!error){saveState();renderSelection();switchTab("selection")}});
+  document.getElementById("saveRosters").addEventListener("click",()=>{const error=validateRosters();document.getElementById("rosterMessage").textContent=error||"保存しました。相手AIがあなたの6体を分析します。";if(!error){state.playerPicks=[];state.opponentRevealed=false;if(!opponentSelectionIsFresh()){state.opponentPicks=[];state.opponentSelectionMeta=null}saveState();renderSelection();switchTab("selection")}});
   document.addEventListener("click",event=>{
     const change=event.target.closest(".change-pokemon");if(change){openPokemonDialog(change.dataset.side,Number(change.dataset.index));return}
     const build=event.target.closest(".build-pokemon");if(build){openBuildDialog(build.dataset.side,Number(build.dataset.index));return}
@@ -756,13 +960,18 @@ function wireEvents(){
   document.getElementById("dataSearch").addEventListener("input",event=>renderDataLibrary(event.target.value));
   document.getElementById("openDataTab").addEventListener("click",()=>switchTab("data"));
   document.getElementById("startTimer").addEventListener("click",startTimer);
-  document.getElementById("clearPicks").addEventListener("click",()=>{state.playerPicks=[];state.opponentPicks=[];state.lastRecommendations=null;saveState();renderSelection();document.getElementById("recommendationPanel").hidden=true});
-  document.getElementById("confirmPicks").addEventListener("click",()=>{if(!validPicks()){document.getElementById("selectionMessage").textContent="両者とも3体を選んでください。";return}clearInterval(timerId);document.getElementById("selectionMessage").textContent="選出を確定しました。";saveState();renderBattleLineups();switchTab("battle")});
+  document.getElementById("clearPicks").addEventListener("click",()=>{state.playerPicks=[];state.opponentRevealed=false;state.lastRecommendations=null;saveState();renderSelection();renderBattleLineups();document.getElementById("recommendationPanel").hidden=true});
+  document.getElementById("confirmPicks").addEventListener("click",()=>{
+    if(state.playerPicks.length!==3){document.getElementById("selectionMessage").textContent="あなたの3体を、先発→控えの順に選んでください。";return}
+    const finalize=()=>{clearInterval(timerId);state.opponentRevealed=true;document.getElementById("selectionMessage").textContent="両者の選出を公開しました。相手AIの理由も確認できます。";saveState();renderSelection();renderBattleLineups();renderMatch();switchTab("battle")};
+    if(!opponentSelectionIsFresh()){document.getElementById("selectionMessage").textContent="相手AIが選出を計算中です…";ensureOpponentSelection(true,finalize);return}
+    finalize();
+  });
   document.getElementById("runBattle").addEventListener("click",()=>runOne(false));
   document.getElementById("runBatch").addEventListener("click",runBatch);
   document.getElementById("analyzeSelections").addEventListener("click",analyzeSelections);
   document.getElementById("simulateGame").addEventListener("click",()=>runOne(true));
-  document.getElementById("nextSelection").addEventListener("click",()=>{state.playerPicks=[];state.opponentPicks=[];state.lastRecommendations=null;saveState();renderSelection();switchTab("selection")});
+  document.getElementById("nextSelection").addEventListener("click",()=>{state.playerPicks=[];state.opponentRevealed=false;state.lastRecommendations=null;saveState();renderSelection();renderBattleLineups();switchTab("selection")});
   document.getElementById("newMatch").addEventListener("click",resetMatch);
   document.getElementById("matchFormat").addEventListener("change",event=>{state.format=Number(event.target.value);resetMatch()});
   document.getElementById("resetAll").addEventListener("click",resetAll);

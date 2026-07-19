@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="PJCS Sim" />
-  <title>PJCS Pokémon GO Simulator v0.6.1</title>
+  <title>PJCS Pokémon GO Simulator v0.7</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -53,18 +53,22 @@
 
     <section id="selection" class="panel">
       <div class="section-heading">
-        <div><p class="step">STEP 2</p><h2>6体から3体を選出</h2></div>
+        <div><p class="step">STEP 2</p><h2>あなたの3体を選出</h2></div>
         <div class="timer-box"><span>残り</span><strong id="timer">90</strong><span>秒</span></div>
       </div>
       <div class="selection-summary">
         <div><span class="muted">あなた</span><strong id="playerSelectionSummary">未選択</strong></div>
-        <div><span class="muted">相手</span><strong id="opponentSelectionSummary">未選択</strong></div>
+        <div><span class="muted">相手AI</span><strong id="opponentSelectionSummary">6体を分析中</strong></div>
       </div>
-      <div class="two-column">
+      <p class="lead selection-rule">相手AIは、公開されたあなたの6体と技・個体値だけを参照します。あなたが今選んでいる3体は見ません。相手の3体は、あなたが選出を確定するまで非公開です。</p>
+      <div class="two-column selection-columns">
         <section class="team-card"><div class="team-card-header"><h3>あなた</h3><span class="mini-status">タップ順＝先発→控え</span></div><div id="playerSelection" class="pick-grid"></div></section>
-        <section class="team-card"><div class="team-card-header"><h3>相手</h3><span class="mini-status">相手選出も設定</span></div><div id="opponentSelection" class="pick-grid"></div></section>
+        <section id="opponentAiPanel" class="team-card opponent-ai-panel" aria-live="polite">
+          <div class="team-card-header"><h3>相手AI</h3><span id="opponentAiStatus" class="mini-status">6体を分析中</span></div>
+          <div id="opponentAiContent" class="opponent-ai-content"><p class="muted">相手の60通りを比較しています。</p></div>
+        </section>
       </div>
-      <div class="button-row"><button id="startTimer" class="secondary-button" type="button">90秒開始</button><button id="clearPicks" class="ghost-button" type="button">解除</button><button id="confirmPicks" class="primary-button" type="button">選出を確定</button></div>
+      <div class="button-row"><button id="startTimer" class="secondary-button" type="button">90秒開始</button><button id="clearPicks" class="ghost-button" type="button">自分の選出を解除</button><button id="confirmPicks" class="primary-button" type="button">自分の選出を確定して公開</button></div>
       <p id="selectionMessage" class="message" aria-live="polite"></p>
     </section>
 
@@ -76,8 +80,9 @@
       </div>
       <section class="current-game">
         <h3>現在の選出</h3>
-        <div class="current-lineup"><div><span>あなた</span><div id="battlePlayerLineup" class="lineup-pills"></div></div><div><span>相手</span><div id="battleOpponentLineup" class="lineup-pills"></div></div></div>
+        <div class="current-lineup"><div><span>あなた</span><div id="battlePlayerLineup" class="lineup-pills"></div></div><div><span>相手AI</span><div id="battleOpponentLineup" class="lineup-pills"></div></div></div>
       </section>
+      <section id="opponentBattleReason" class="opponent-battle-reason" hidden aria-live="polite"></section>
       <div class="button-row three"><button id="runBattle" class="primary-button" type="button">1試合を自動対戦</button><button id="runBatch" class="secondary-button" type="button">100試合で勝率分析</button><button id="analyzeSelections" class="spark-button" type="button">✨ 勝てる選出を探す</button></div>
       <section id="battleResult" class="result-card" aria-live="polite"><p>選出を確定すると自動対戦できます。</p></section>
       <section id="recommendationPanel" class="recommendation-panel" hidden aria-live="polite"></section>
@@ -87,7 +92,7 @@
     <section id="match" class="panel">
       <div class="section-heading"><div><p class="step">STEP 4</p><h2>BO3 / BO5を自動進行</h2></div><label class="compact-label">形式<select id="matchFormat"><option value="3">BO3</option><option value="5">BO5</option></select></label></div>
       <div class="scoreboard"><div class="score-side"><span>あなた</span><strong id="playerScore">0</strong></div><div class="score-center"><span id="gameNumber">GAME 1</span><small id="targetWins">2勝先取</small></div><div class="score-side"><span>相手</span><strong id="opponentScore">0</strong></div></div>
-      <section class="current-game"><h3>現在の選出</h3><div class="current-lineup"><div><span>あなた</span><div id="currentPlayerLineup" class="lineup-pills"></div></div><div><span>相手</span><div id="currentOpponentLineup" class="lineup-pills"></div></div></div></section>
+      <section class="current-game"><h3>現在の選出</h3><div class="current-lineup"><div><span>あなた</span><div id="currentPlayerLineup" class="lineup-pills"></div></div><div><span>相手AI</span><div id="currentOpponentLineup" class="lineup-pills"></div></div></div></section>
       <div class="button-row"><button id="simulateGame" class="primary-button" type="button">このGameを自動シミュレーション</button><button id="nextSelection" class="secondary-button" type="button">次Gameの3体を選ぶ</button><button id="newMatch" class="ghost-button" type="button">新しいマッチ</button></div>
       <section class="history-section"><h3>ゲーム履歴</h3><ol id="historyList" class="history-list"></ol></section>
       <p id="matchMessage" class="message" aria-live="polite"></p>
@@ -134,7 +139,7 @@
     <p id="buildMessage" class="message" aria-live="polite"></p>
   </dialog>
 
-  <footer class="app-footer">PJCS training simulator v0.6.1 / transparent selection analysis / sprite thumbnails</footer>
+  <footer class="app-footer">PJCS training simulator v0.7 / transparent selection analysis / sprite thumbnails</footer>
   <script src="embedded-data.js"></script>
   <script src="app.js" defer></script>
 </body>
