@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="PJCS Sim" />
-  <title>PJCS Pokémon GO Simulator v0.7.1</title>
+  <title>PJCS Pokémon GO Simulator v0.7.2</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -63,11 +63,11 @@
       <p class="lead selection-rule">相手AIは、公開されたあなたの6体と技・個体値だけを参照します。あなたが今選んでいる3体は見ません。相手の3体は、あなたが選出を確定するまで非公開です。</p>
       <div class="two-column selection-columns selection-roster-columns">
         <section class="team-card selection-team-card">
-          <div class="team-card-header"><h3>あなたの6体</h3><span class="mini-status">横にスワイプ・タップ順＝先発→控え</span></div>
+          <div class="team-card-header"><h3>あなたの6体</h3><span class="mini-status">3行×2列・横にスワイプ・タップ順＝先発→控え</span></div>
           <div id="playerSelection" class="pick-grid selection-scroll" aria-label="あなたの6体から3体を選択"></div>
         </section>
         <section class="team-card selection-team-card opponent-public-card">
-          <div class="team-card-header"><h3>相手の公開6体</h3><span class="mini-status">横にスワイプ</span></div>
+          <div class="team-card-header"><h3>相手の公開6体</h3><span class="mini-status">3行×2列・横にスワイプ</span></div>
           <p class="selection-helper">相手AIの3体は非公開ですが、見せ合いの6体は確認できます。</p>
           <div id="opponentSelectionPreview" class="public-pick-grid selection-scroll" aria-label="相手の公開6体"></div>
         </section>
@@ -147,7 +147,7 @@
     <p id="buildMessage" class="message" aria-live="polite"></p>
   </dialog>
 
-  <footer class="app-footer">PJCS training simulator v0.7.1 / transparent selection analysis / sprite thumbnails</footer>
+  <footer class="app-footer">PJCS training simulator v0.7.2 / transparent selection analysis / sprite thumbnails</footer>
   <script src="embedded-data.js"></script>
   <script src="app.js" defer></script>
 </body>

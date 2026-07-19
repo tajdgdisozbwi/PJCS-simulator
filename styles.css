@@ -138,3 +138,41 @@ button,input,select{font-size:16px}input[type="search"]{font-size:16px!important
 .opponent-public-card{border-color:rgba(245,158,11,.32)}
 #opponentAiPanel{margin-top:12px}
 @media(min-width:760px){.selection-scroll .pick-card,.selection-scroll .public-pick-card{flex-basis:250px;width:250px}.selection-roster-columns{grid-template-columns:1fr 1fr}}
+
+
+/* v0.7.2: keep six Pokémon in a 3-row × 2-column board while allowing horizontal swipe */
+.selection-scroll{
+  display:grid!important;
+  grid-template-rows:repeat(3,minmax(118px,auto))!important;
+  grid-template-columns:repeat(2,220px)!important;
+  grid-auto-flow:row!important;
+  grid-auto-columns:unset!important;
+  gap:10px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  padding:2px 2px 12px!important;
+  scroll-snap-type:x mandatory;
+  scroll-padding-inline:2px;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-inline:contain;
+  touch-action:pan-x pan-y;
+}
+.selection-scroll .pick-card,.selection-scroll .public-pick-card{
+  width:220px!important;
+  min-width:220px!important;
+  min-height:118px!important;
+  height:auto!important;
+  flex:none!important;
+  scroll-snap-align:start;
+}
+@media(max-width:420px){
+  .selection-scroll{grid-template-columns:repeat(2,205px)!important}
+  .selection-scroll .pick-card,.selection-scroll .public-pick-card{width:205px!important;min-width:205px!important}
+}
+@media(min-width:760px){
+  .selection-scroll{grid-template-columns:repeat(2,minmax(205px,1fr))!important}
+  .selection-scroll .pick-card,.selection-scroll .public-pick-card{width:auto!important;min-width:205px!important}
+}
+
+/* v0.7.2 shield matrix readability */
+.coverage-row em{white-space:normal;max-width:100%}.coverage-row em small,.ai-targets>div>span{white-space:normal;overflow-wrap:anywhere;line-height:1.35}
