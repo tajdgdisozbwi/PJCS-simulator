@@ -26,3 +26,5 @@ This app uses or references public third-party data and sprite repositories.
 
 ## Shadow indicator
 The purple shadow badge in this app is an original CSS/SVG indicator created for this project. It is not the official Pokémon GO Shadow icon and no official Shadow icon file is redistributed in this package.
+
+- Aegislash Shield and Blade pixel sprites are loaded from the Pokémon Showdown public sprite directories; the application does not bundle or redistribute the image files.

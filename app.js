@@ -1,6 +1,6 @@
 "use strict";
 
-const STORAGE_KEY = "pjcs-simulator-v101";
+const STORAGE_KEY = "pjcs-simulator-v103";
 const OLD_STORAGE_KEYS = [];
 const TURN_MS = 500;
 const SWITCH_COOLDOWN_TURNS = 90;
@@ -373,11 +373,54 @@ function hydrateEmbeddedData(){
 
 function effectiveness(type,defTypes){return defTypes.reduce((m,t)=>{if(IMMUNE[type]?.includes(t))return m*0.390625;if(SUPER[type]?.includes(t))return m*1.6;if(RESIST[type]?.includes(t))return m*0.625;return m},1)}
 function stageMult(stage){return STAGE[String(clamp(stage,-4,4))]||1}
+const AEGISLASH_BLADE_BASE={baseAtk:272,baseDef:97,baseSta:155};
+function isAegislash(mon){return normalizedSpriteKey(mon)==="aegislash_shield"}
+function aegislashFormName(form){return form==="blade"?"ブレードフォルム":"シールドフォルム"}
 function attackStat(mon){return mon.atk*stageMult(mon.attackStage)*(mon.shadow?SHADOW_ATTACK:1)}
 function defenseStat(mon){return mon.def*stageMult(mon.defenseStage)*(mon.shadow?SHADOW_DEFENSE:1)}
-function calcDamage(attacker,defender,move){if(!attacker||!defender||!move)return 1;const stab=attacker.types.includes(move.type)?STAB:1;const eff=effectiveness(move.type,defender.types);return Math.max(1,Math.floor(.5*move.power*(attackStat(attacker)/Math.max(1,defenseStat(defender)))*stab*eff*1.2999999523)+1)}
-
-function monFromId(id,build=null){const p=POKEMON[id]||Object.values(FALLBACK_POKEMON)[0];const b=normalizeBuild(p,build);return {...p,...b,id,maxHp:b.hp,currentHp:b.hp,energy:0,attackStage:0,defenseStage:0,fastPending:null,fainted:false}}
+function aegislashBladeStats(mon){
+  if(!isAegislash(mon))return null;
+  if(mon.bladeStats)return mon.bladeStats;
+  if(Number.isFinite(mon.level)&&Number.isFinite(mon.atkIV)&&Number.isFinite(mon.defIV)&&Number.isFinite(mon.hpIV))return statsFor(AEGISLASH_BLADE_BASE,mon.level,mon.atkIV,mon.defIV,mon.hpIV);
+  return null;
+}
+function chargedCmpStat(mon){
+  const blade=aegislashBladeStats(mon);
+  if(blade&&(mon.battleForm==="shield"||!mon.battleForm))return blade.atk*stageMult(mon.attackStage||0)*(mon.shadow?SHADOW_ATTACK:1);
+  return attackStat(mon);
+}
+function calcDamageWithAttack(attacker,defender,move,attackValue){if(!attacker||!defender||!move)return 1;const stab=attacker.types.includes(move.type)?STAB:1;const eff=effectiveness(move.type,defender.types);return Math.max(1,Math.floor(.5*move.power*(attackValue/Math.max(1,defenseStat(defender)))*stab*eff*1.2999999523)+1)}
+function calcDamage(attacker,defender,move){return calcDamageWithAttack(attacker,defender,move,attackStat(attacker))}
+function projectedChargedDamage(attacker,defender,move){return calcDamageWithAttack(attacker,defender,move,chargedCmpStat(attacker))}
+function fastDamage(attacker,defender,move){return isAegislash(attacker)&&attacker.battleForm==="shield"?1:calcDamage(attacker,defender,move)}
+function fastEnergy(attacker,move){return isAegislash(attacker)&&attacker.battleForm==="shield"?6:safeNumber(move?.energy,0)}
+function setAegislashForm(mon,form,log=null,turn=0,reason=""){
+  if(!isAegislash(mon)||!mon.shieldStats||!mon.bladeStats)return false;
+  const next=form==="blade"?"blade":"shield";
+  if(mon.battleForm===next)return false;
+  const stats=next==="blade"?mon.bladeStats:mon.shieldStats;
+  mon.battleForm=next;mon.atk=stats.atk;mon.def=stats.def;mon.cp=stats.cp;
+  if(log){const detail=`攻撃${stats.atk.toFixed(1)}・防御${stats.def.toFixed(1)}・CP${stats.cp}`;log.push(`${turnLabel(turn)} ${logMon(mon)}へフォルムチェンジ（${reason||aegislashFormName(next)}／${detail}）`)}
+  return true;
+}
+function resetAegislashOnEntry(mon){if(isAegislash(mon))setAegislashForm(mon,"shield")}
+function prepareSwitchOut(mon,log=null,turn=0){
+  if(!mon)return;
+  mon.fastPending=null;
+  mon.attackStage=0;
+  mon.defenseStage=0;
+  if(isAegislash(mon))setAegislashForm(mon,"shield",log,turn,"交代");
+}
+function monFromId(id,build=null){
+  const p=POKEMON[id]||Object.values(FALLBACK_POKEMON)[0],b=normalizeBuild(p,build);
+  const mon={...p,...b,id,maxHp:b.hp,currentHp:b.hp,energy:0,attackStage:0,defenseStage:0,fastPending:null,fainted:false,battleForm:null};
+  if(isAegislash(mon)){
+    mon.shieldStats={atk:b.atk,def:b.def,hp:b.hp,cp:b.cp};
+    mon.bladeStats=statsFor(AEGISLASH_BLADE_BASE,b.level,b.atkIV,b.defIV,b.hpIV);
+    mon.battleForm="shield";
+  }
+  return mon;
+}
 function createTeam(roster,picks,builds){return {party:picks.map(i=>monFromId(roster[i],builds?.[i])),active:0,shields:2,switchCooldown:0}}
 function active(team){return team.party[team.active]}
 function alive(team){return team.party.map((m,i)=>!m.fainted?i:-1).filter(i=>i>=0)}
@@ -390,16 +433,16 @@ function bestCharged(mon,opp,preferCheap=false){
   const available=chargedObjects(mon).filter(m=>mon.energy>=m.energy);
   if(!available.length)return null;
   if(preferCheap)return [...available].sort((a,b)=>a.energy-b.energy)[0];
-  return [...available].sort((a,b)=>(calcDamage(mon,opp,b)/Math.max(1,b.energy))-(calcDamage(mon,opp,a)/Math.max(1,a.energy)))[0];
+  return [...available].sort((a,b)=>(projectedChargedDamage(mon,opp,b)/Math.max(1,b.energy))-(projectedChargedDamage(mon,opp,a)/Math.max(1,a.energy)))[0];
 }
 function matchupScore(mon,opp){
   if(!mon||!opp)return 0;
   const fast=fastObject(mon);
   const ownCharged=chargedObjects(mon);
-  const own=(calcDamage(mon,opp,fast)/fast.turns)+(ownCharged.length?Math.max(...ownCharged.map(m=>calcDamage(mon,opp,m)/Math.max(1,m.energy)))*3:0);
+  const own=(fastDamage(mon,opp,fast)/fast.turns)+(ownCharged.length?Math.max(...ownCharged.map(m=>projectedChargedDamage(mon,opp,m)/Math.max(1,m.energy)))*3:0);
   const of=fastObject(opp);
   const theirCharged=chargedObjects(opp);
-  const theirs=(calcDamage(opp,mon,of)/of.turns)+(theirCharged.length?Math.max(...theirCharged.map(m=>calcDamage(opp,mon,m)/Math.max(1,m.energy)))*3:0);
+  const theirs=(fastDamage(opp,mon,of)/of.turns)+(theirCharged.length?Math.max(...theirCharged.map(m=>projectedChargedDamage(opp,mon,m)/Math.max(1,m.energy)))*3:0);
   return (own-theirs)/Math.max(1,theirs);
 }
 function bestSwitch(team,opp){let best=-1,bestScore=-Infinity;for(const i of alive(team)){if(i===team.active)continue;const s=matchupScore(team.party[i],opp);if(s>bestScore){bestScore=s;best=i}}return {index:best,score:bestScore}}
@@ -411,7 +454,7 @@ function chooseAction(team,other,rng,style){
   if(team.switchCooldown===0&&candidate.index>=0&&currentScore<-0.22+switchBias&&candidate.score>currentScore+.22&&rng()<.78)return {type:"switch",index:candidate.index};
   const available=chargedObjects(mon).filter(move=>mon.energy>=move.energy);
   if(available.length){
-    const maxDamage=Math.max(...available.map(move=>calcDamage(mon,opp,move)));
+    const maxDamage=Math.max(...available.map(move=>projectedChargedDamage(mon,opp,move)));
     const lethal=maxDamage>=opp.currentHp;const throwChance=style==="aggressive"?.93:style==="conservative"?.70:.84;
     if(lethal||mon.energy>=90||rng()<throwChance){
       const move=other.shields>0&&available.length>1&&rng()<(style==="aggressive"?.48:.35)?bestCharged(mon,opp,true):bestCharged(mon,opp,false);
@@ -432,8 +475,12 @@ function applyEffects(user,target,move,rng,log,turn){
 }
 function turnLabel(turn){return `${(turn*TURN_MS/1000).toFixed(1)}秒`}
 function fastTiming(move){return `${move.turns}ターン / ${(move.turns*TURN_MS/1000).toFixed(1)}秒`}
-function logMon(mon){return mon?.id?`[[MON:${encodeURIComponent(mon.id)}]]`:escapeHtml(mon?.name||"?")}
-function forceSwitch(team,opp,log,turn){const options=alive(team).filter(i=>i!==team.active);if(!options.length)return;let best=options[0],score=-Infinity;for(const i of options){const s=matchupScore(team.party[i],opp);if(s>score){score=s;best=i}}team.active=best;team.party[best].fastPending=null;log.push(`${turnLabel(turn)} ${logMon(active(team))}を繰り出した`)}
+function logMon(mon){
+  if(!mon?.id)return escapeHtml(mon?.name||"?");
+  const form=isAegislash(mon)?(mon.battleForm||"shield"):"base";
+  return `[[MON:${encodeURIComponent(mon.id)}|${form}]]`;
+}
+function forceSwitch(team,opp,log,turn){const options=alive(team).filter(i=>i!==team.active);if(!options.length)return;let best=options[0],score=-Infinity;for(const i of options){const s=matchupScore(team.party[i],opp);if(s>score){score=s;best=i}}team.active=best;team.party[best].fastPending=null;resetAegislashOnEntry(team.party[best]);log.push(`${turnLabel(turn)} ${logMon(active(team))}を繰り出した`)}
 function processFaints(a,b,log,turn){const am=active(a),bm=active(b);if(am&&am.currentHp<=0&&!am.fainted){am.fainted=true;am.currentHp=0;am.fastPending=null;log.push(`${turnLabel(turn)} ${logMon(am)}がひんし`)}if(bm&&bm.currentHp<=0&&!bm.fainted){bm.fainted=true;bm.currentHp=0;bm.fastPending=null;log.push(`${turnLabel(turn)} ${logMon(bm)}がひんし`)}if(!battleOver(a,b)){if(active(a).fainted)forceSwitch(a,active(b),log,turn);if(active(b).fainted)forceSwitch(b,active(a),log,turn)}}
 
 function simulateBattle(playerRoster,playerPicks,opponentRoster,opponentPicks,seed,style="balanced",verbose=true,playerBuilds=state.playerBuilds,opponentBuilds=state.opponentBuilds,options={}){
@@ -451,26 +498,30 @@ function simulateBattle(playerRoster,playerPicks,opponentRoster,opponentPicks,se
     const charged=[];
     if(pa.type==="charged")charged.push({team:p,other:o,action:pa,actor:pActor,label:"あなた"});
     if(oa.type==="charged")charged.push({team:o,other:p,action:oa,actor:oActor,label:"相手"});
-    charged.sort((x,y)=>attackStat(y.actor)-attackStat(x.actor)||(rng()<.5?-1:1));
+    charged.sort((x,y)=>chargedCmpStat(y.actor)-chargedCmpStat(x.actor)||(rng()<.5?-1:1));
     if(charged.length){
       for(const item of charged){
         if(battleOver(p,o))break;
         const user=item.actor,target=active(item.other),move=item.action.move;
         if(active(item.team)!==user||!user||user.fainted||!move||user.energy<move.energy)continue;
         user.energy-=move.energy;
+        // Pokémon GO: Aegislash changes to Blade Forme immediately before its Charged Attack.
+        if(isAegislash(user)&&user.battleForm==="shield")setAegislashForm(user,"blade",verbose?log:null,turn,"ゲージ技を使用");
         const shield=shouldShield(item.other,user,move,rng,style);
         const dmg=shield?1:calcDamage(user,target,move);
         if(shield)item.other.shields-=1;
         target.currentHp-=dmg;
         if(verbose)log.push(`${turnLabel(turn)} ${logMon(user)}の${move.name} → ${logMon(target)} ${dmg}ダメージ${shield?"（シールド）":""}（ゲージ技・固有ターンなし）`);
+        // Aegislash returns to Shield Forme after it uses a Protect Shield.
+        if(shield&&isAegislash(target)&&target.battleForm==="blade")setAegislashForm(target,"shield",verbose?log:null,turn,"シールドを使用");
         applyEffects(user,target,move,rng,log,turn);processFaints(p,o,log,turn);
       }
       if(battleOver(p,o))return finishBattle(p,o,turn,log,"KO");
       continue;
     }
 
-    if(pa.type==="switch"&&active(p)===pActor&&!active(p).fainted&&p.switchCooldown===0){p.active=pa.index;p.switchCooldown=SWITCH_COOLDOWN_TURNS;if(verbose)log.push(`${turnLabel(turn)} あなたは${logMon(active(p))}へ交代`)}
-    if(oa.type==="switch"&&active(o)===oActor&&!active(o).fainted&&o.switchCooldown===0){o.active=oa.index;o.switchCooldown=SWITCH_COOLDOWN_TURNS;if(verbose)log.push(`${turnLabel(turn)} 相手は${logMon(active(o))}へ交代`)}
+    if(pa.type==="switch"&&active(p)===pActor&&!active(p).fainted&&p.switchCooldown===0){prepareSwitchOut(pActor,verbose?log:null,turn);p.active=pa.index;active(p).fastPending=null;resetAegislashOnEntry(active(p));p.switchCooldown=SWITCH_COOLDOWN_TURNS;if(verbose)log.push(`${turnLabel(turn)} あなたは${logMon(active(p))}へ交代`)}
+    if(oa.type==="switch"&&active(o)===oActor&&!active(o).fainted&&o.switchCooldown===0){prepareSwitchOut(oActor,verbose?log:null,turn);o.active=oa.index;active(o).fastPending=null;resetAegislashOnEntry(active(o));o.switchCooldown=SWITCH_COOLDOWN_TURNS;if(verbose)log.push(`${turnLabel(turn)} 相手は${logMon(active(o))}へ交代`)}
 
     if(pa.type==="fast"&&active(p)===pActor&&!active(p).fastPending)active(p).fastPending={remaining:pa.move.turns,move:pa.move};
     if(oa.type==="fast"&&active(o)===oActor&&!active(o).fastPending)active(o).fastPending={remaining:oa.move.turns,move:oa.move};
@@ -486,11 +537,14 @@ function simulateBattle(playerRoster,playerPicks,opponentRoster,opponentPicks,se
         if(mon.fastPending.remaining<=0){fastHits.push({attacker:mon,defender:active(other),move:mon.fastPending.move});mon.fastPending=null}
       }
     }
-    const damages=fastHits.map(hit=>({...hit,damage:calcDamage(hit.attacker,hit.defender,hit.move)}));
+    const damages=fastHits.map(hit=>({...hit,damage:fastDamage(hit.attacker,hit.defender,hit.move),energyGain:fastEnergy(hit.attacker,hit.move)}));
     for(const hit of damages){
       if(!hit.attacker.fainted&&hit.defender){
-        hit.attacker.energy=clamp(hit.attacker.energy+hit.move.energy,0,100);hit.defender.currentHp-=hit.damage;
-        if(verbose)log.push(`${turnLabel(turn)} ${logMon(hit.attacker)}の${hit.move.name} → ${hit.damage}ダメージ（${fastTiming(hit.move)}、E+${hit.move.energy}→${hit.attacker.energy}）`);
+        hit.attacker.energy=clamp(hit.attacker.energy+hit.energyGain,0,100);hit.defender.currentHp-=hit.damage;
+        const shieldCharge=isAegislash(hit.attacker)&&hit.attacker.battleForm==="shield";
+        const fastLabel=shieldCharge?`チャージ（${hit.move.name}相当）`:hit.move.name;
+        const stanceNote=shieldCharge?"・シールド仕様":"";
+        if(verbose)log.push(`${turnLabel(turn)} ${logMon(hit.attacker)}の${fastLabel} → ${hit.damage}ダメージ（${fastTiming(hit.move)}、E+${hit.energyGain}→${hit.attacker.energy}${stanceNote}）`);
       }
     }
     processFaints(p,o,log,turn);
@@ -565,7 +619,7 @@ function isAlternateSpriteForm(p){const form=String(p?.form||"");return Boolean(
 function spriteUrl(p){
   const key=normalizedSpriteKey(p);
   if(SPECIAL_SPRITE_FALLBACK_ONLY.has(key))return "";
-  if(key==="aegislash_shield")return "https://play.pokemonshowdown.com/sprites/gen6/aegislash-shield.png";
+  if(key==="aegislash_shield")return p?.battleForm==="blade"?"https://play.pokemonshowdown.com/sprites/gen6/aegislash-blade.png":"https://play.pokemonshowdown.com/sprites/gen6/aegislash-shield.png";
   if(SPECIAL_SPRITE_SLUGS[key])return `https://play.pokemonshowdown.com/sprites/gen5/${SPECIAL_SPRITE_SLUGS[key]}.png`;
   if(isAlternateSpriteForm(p)&&!SAME_APPEARANCE_ALT_SPRITES.has(key))return "";
   const dex=Math.max(1,Math.trunc(Number(p?.dex)||0));
@@ -574,10 +628,15 @@ function spriteUrl(p){
 function shadowBadge(){
   return `<span class="shadow-mark" title="シャドウポケモン" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 2.5c1.1 2.6 3.8 3.7 5.4 5.9 1.2 1.6 1.7 3.2 1.3 5.2-.6 3.6-3.3 6.1-6.7 6.1s-6.1-2.5-6.7-6.1c-.4-2 .1-3.6 1.3-5.2 1.1-1.5 2.7-2.5 3.7-4.1.6 1.8.3 3.2-.3 4.4 1.6-1.3 2.5-3.2 2-6.2Z"/><path class="shadow-mark-cut" d="M8.5 14.2c1.1.8 2.2 1.2 3.5 1.2s2.4-.4 3.5-1.2c-.6 1.9-1.8 3-3.5 3s-2.9-1.1-3.5-3Z"/></svg></span>`;
 }
+function pokemonDisplayName(p){
+  if(isAegislash(p)&&p?.battleForm)return `ギルガルド（${p.battleForm==="blade"?"ブレード":"シールド"}）`;
+  return String(p?.name||"ポケモン");
+}
 function pokemonAvatar(p,size="normal"){
-  const initial=escapeHtml(String(p?.name||"?").replace(/[（(].*/,"").slice(0,1)||"?");
+  const displayName=pokemonDisplayName(p);
+  const initial=escapeHtml(displayName.replace(/[（(].*/,"").slice(0,1)||"?");
   const url=spriteUrl(p);
-  const label=escapeHtml(String(p?.name||"ポケモン"));
+  const label=escapeHtml(displayName);
   const shadowClass=p?.shadow?" is-shadow":"";
   const badge=p?.shadow?shadowBadge():"";
   if(!url)return `<span class="pokemon-avatar avatar-${escapeHtml(size)}${shadowClass}" title="${label}"><span class="avatar-fallback avatar-fallback-solid" aria-hidden="true">${initial}</span>${badge}</span>`;
@@ -585,7 +644,8 @@ function pokemonAvatar(p,size="normal"){
 }
 function spriteToken(p,size="inline"){
   if(!p)return '<span class="sprite-token sprite-missing" aria-label="データなし">?</span>';
-  return `<span class="sprite-token" role="img" aria-label="${escapeHtml(p.name)}" title="${escapeHtml(p.name)}">${pokemonAvatar(p,size)}<span class="sr-only">${escapeHtml(p.name)}</span></span>`;
+  const label=pokemonDisplayName(p);
+  return `<span class="sprite-token" role="img" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${pokemonAvatar(p,size)}<span class="sr-only">${escapeHtml(label)}</span></span>`;
 }
 function selectedBattlePokemon(){
   const mons=[];
@@ -609,11 +669,14 @@ function renderLegacyLogWithSprites(text){
 }
 function battleLogHtml(text){
   const source=String(text??"");
-  const regex=/\[\[MON:([^\]]+)\]\]/g;
+  const regex=/\[\[MON:([^|\]]+)(?:\|([^\]]+))?\]\]/g;
   let html="",cursor=0,match,found=false;
   while((match=regex.exec(source))){
     found=true;html+=escapeHtml(source.slice(cursor,match.index));
-    const id=decodeURIComponent(match[1]);html+=spriteToken(POKEMON[id]||selectedBattlePokemon().find(p=>p.id===id),"log");
+    const id=decodeURIComponent(match[1]),form=match[2]||"base";
+    const base=POKEMON[id]||selectedBattlePokemon().find(p=>p.id===id);
+    const display=base&&isAegislash(base)?{...base,battleForm:form==="blade"?"blade":"shield"}:base;
+    html+=spriteToken(display,"log");
     cursor=regex.lastIndex;
   }
   if(found)return html+escapeHtml(source.slice(cursor));
@@ -888,15 +951,16 @@ function opponentDuel(opponentIndex,playerIndex){
 function opponentShieldRecord(duel){return shieldMatrixText(duel,"opponent")}
 function firstChargedTurns(mon,move){
   const fast=fastObject(mon);
-  if(!fast||!move||safeNumber(fast.energy)<=0)return Infinity;
-  return Math.ceil(move.energy/fast.energy)*fast.turns;
+  const energyPerFast=isAegislash(mon)?6:safeNumber(fast?.energy);
+  if(!fast||!move||energyPerFast<=0)return Infinity;
+  return Math.ceil(move.energy/energyPerFast)*fast.turns;
 }
 function fastestChargedProfile(mon){
   const moves=chargedObjects(mon).map(move=>({move,turns:firstChargedTurns(mon,move)})).sort((a,b)=>a.turns-b.turns||a.move.energy-b.move.energy);
   return moves[0]||null;
 }
 function bestPressureMove(attacker,defender){
-  return chargedObjects(attacker).map(move=>({move,damage:calcDamage(attacker,defender,move),eff:effectiveness(move.type,defender.types),turns:firstChargedTurns(attacker,move)})).sort((a,b)=>(b.damage/Math.max(1,b.move.energy))-(a.damage/Math.max(1,a.move.energy))||b.damage-a.damage)[0]||null;
+  return chargedObjects(attacker).map(move=>({move,damage:projectedChargedDamage(attacker,defender,move),eff:effectiveness(move.type,defender.types),turns:firstChargedTurns(attacker,move)})).sort((a,b)=>(b.damage/Math.max(1,b.move.energy))-(a.damage/Math.max(1,a.move.energy))||b.damage-a.damage)[0]||null;
 }
 function moveEffectText(effect){
   if(!effect)return "";
@@ -1387,7 +1451,7 @@ function metaBenchmarkPool(){return opponentCandidatePool().slice(0,OPPONENT_BEN
 function quickMatchupIndex(attackerId,defenderId){
   const a=POKEMON[attackerId],d=POKEMON[defenderId];if(!a||!d)return -99;
   const fast=FAST_MOVES[a.fast];const charged=(a.charged||[]).map(id=>CHARGED_MOVES[id]).filter(Boolean);
-  const fastPressure=fast?effectiveness(fast.type,d.types)*(fast.power/Math.max(1,fast.turns))*0.45:0;
+  const fastPressure=fast?(isAegislash(a)?(1/Math.max(1,fast.turns))*0.45:effectiveness(fast.type,d.types)*(fast.power/Math.max(1,fast.turns))*0.45):0;
   const chargedPressure=charged.length?Math.max(...charged.map(m=>effectiveness(m.type,d.types)*(m.power/Math.max(30,m.energy)))):0;
   const incomingFast=FAST_MOVES[d.fast];const incomingMoves=(d.charged||[]).map(id=>CHARGED_MOVES[id]).filter(Boolean);
   const incoming=Math.max(incomingFast?effectiveness(incomingFast.type,a.types):1,...incomingMoves.map(m=>effectiveness(m.type,a.types)));
@@ -1487,12 +1551,13 @@ function formatMultiplier(value){
 function opponentMatchupReasons(opponentIndex,playerIndex){
   const attacker=effectivePokemon("opponent",opponentIndex),defender=effectivePokemon("player",playerIndex);if(!attacker||!defender)return [];
   const reasons=[],fast=fastObject(attacker),playerFast=fastObject(defender),pressure=bestPressureMove(attacker,defender);const fastEff=effectiveness(fast.type,defender.types),incomingFastEff=effectiveness(playerFast.type,attacker.types);
-  reasons.push(`通常技 ${fast.name}：${formatMultiplier(fastEff)}`);
-  if(pressure)reasons.push(`ゲージ技 ${pressure.move.name}：${formatMultiplier(pressure.eff)}・約${pressure.turns}T`);
+  if(isAegislash(attacker))reasons.push(`シールド中：通常技1ダメージ・E+6（${fast.turns}T）`);
+  else reasons.push(`通常技 ${fast.name}：${formatMultiplier(fastEff)}`);
+  if(pressure)reasons.push(`ゲージ技 ${pressure.move.name}：ブレード攻撃で${formatMultiplier(pressure.eff)}・約${pressure.turns}T`);
   if(incomingFastEff<1)reasons.push(`相手の${playerFast.name}を${formatMultiplier(incomingFastEff)}に抑える`);
   const resisted=chargedObjects(defender).map(move=>({move,eff:effectiveness(move.type,attacker.types)})).filter(x=>x.eff<1).sort((a,b)=>a.eff-b.eff);
   if(resisted.length)reasons.push(`${resisted[0].move.name}を${formatMultiplier(resisted[0].eff)}に抑える`);
-  if(attackStat(attacker)>attackStat(defender)*1.01)reasons.push("CMPを取りやすい");
+  if(chargedCmpStat(attacker)>chargedCmpStat(defender)*1.01)reasons.push(isAegislash(attacker)?"ブレード変化後はCMPを取りやすい":"CMPを取りやすい");
   const effectMove=chargedObjects(attacker).find(move=>(move.effects||[]).length);if(effectMove)reasons.push(`${effectMove.name}：${moveEffectText(effectMove.effects[0])}`);
   return reasons.slice(0,5);
 }
@@ -1603,7 +1668,7 @@ function renderDataLibrary(query=""){
   document.getElementById("dataMetrics").innerHTML=`<div class="metric"><strong>${DATA_INFO.count}</strong><span>収録ポケモン</span></div><div class="metric"><strong>${DATA_INFO.liveMovesetCount||0}</strong><span>最新推奨技を照合</span></div><div class="metric"><strong>${opponentCandidatePool().length}</strong><span>相手AI候補</span></div>`;
   const ids=META_ORDER.filter(id=>{const p=POKEMON[id],hay=[p.name,p.englishName,...p.types.map(typeName),...p.types,FAST_MOVES[p.fast]?.name,...p.charged.map(x=>CHARGED_MOVES[x]?.name)].join(" ").toLowerCase();return !q||hay.includes(q)}).slice(0,q?DATA_INFO.count:140);
   document.getElementById("dataList").replaceChildren(...ids.map(id=>{const p=POKEMON[id],b=p.rank1,row=document.createElement("article");row.className="data-row";row.innerHTML=`<span class="data-rank">${p.rank?`#${p.rank}<small>性能順位</small>`:`—<small>未照合</small>`}</span>${pokemonAvatar(p,"data")}<div class="data-main"><strong>${escapeHtml(p.name)} ${p.movesetSource?'<span class="meta-inline">技照合済み</span>':''}</strong><small>${typeChips(p.types)} ${escapeHtml(moveLabel(p))}</small></div><div class="data-build">CP ${b.cp}<br>Lv ${b.level}</div>`;return row}));
-  document.getElementById("dataDiagnostics").innerHTML=`<p><strong>技構成:</strong> ${DATA_INFO.liveMeta?'起動時に現行PvPokeランキングJSONを取得し、収録ポケモン全体の推奨技を合法技と照合しています。':'通信できなかったため、監査済み主要技＋内蔵スナップショットです。'}</p><p><strong>照合数:</strong> ${DATA_INFO.liveMovesetCount||0}体 / 順位一致 ${DATA_INFO.liveRankedCount||0}体</p><p><strong>相手AI:</strong> 上位${opponentCandidatePool().length}体から候補を作成し、基準${metaBenchmarkPool().length}体への技相性、耐性、役割、弱点集中を評価。上位構築は9シールド対面で再検証します。</p><p><strong>倍率:</strong> 弱点×1.6、二重弱点×2.56、耐性×0.625、二重耐性・無効相当×0.391、重複時×0.244を使用します。</p><p><strong>数値データ元:</strong> ${escapeHtml(DATA_INFO.source)}</p><p><strong>収録:</strong> 通常・フォルム ${d.baseForms||0}、シャドウ ${d.shadowForms||0}</p>`;
+  document.getElementById("dataDiagnostics").innerHTML=`<p><strong>技構成:</strong> ${DATA_INFO.liveMeta?'起動時に現行PvPokeランキングJSONを取得し、収録ポケモン全体の推奨技を合法技と照合しています。':'通信できなかったため、監査済み主要技＋内蔵スナップショットです。'}</p><p><strong>照合数:</strong> ${DATA_INFO.liveMovesetCount||0}体 / 順位一致 ${DATA_INFO.liveRankedCount||0}体</p><p><strong>相手AI:</strong> 上位${opponentCandidatePool().length}体から候補を作成し、基準${metaBenchmarkPool().length}体への技相性、耐性、役割、弱点集中を評価。上位構築は9シールド対面で再検証します。</p><p><strong>倍率:</strong> 弱点×1.6、二重弱点×2.56、耐性×0.625、二重耐性・無効相当×0.391、重複時×0.244を使用します。</p><p><strong>ギルガルド:</strong> 登場時はシールド。シールド中の通常技は1ダメージ・E+6固定。ゲージ技直前にブレードへ変化し、シールド使用後または交代時にシールドへ戻ります。攻撃・防御・CP・CMP・ドット絵も現在フォルムへ連動します。</p><p><strong>数値データ元:</strong> ${escapeHtml(DATA_INFO.source)}</p><p><strong>収録:</strong> 通常・フォルム ${d.baseForms||0}、シャドウ ${d.shadowForms||0}</p>`;
 }
 function renderAll(){renderRosters();renderSelection();renderBattleLineups();renderMatch();renderDataLibrary(document.getElementById("dataSearch")?.value||"");updateTimer();updateRunBattleButton();if(state.lastRecommendations?.version===10&&state.lastRecommendations?.results?.length)renderRecommendations(state.lastRecommendations.results,null);else state.lastRecommendations=null}
 

@@ -236,3 +236,7 @@ button,input,select{font-size:16px}input[type="search"]{font-size:16px!important
 @media(max-width:420px){.avatar-log{width:28px;height:28px}.battle-log{padding-left:20px}.battle-log li{padding:8px 7px}}
 
 .avatar-fallback-solid[hidden]{display:none!important;}
+
+/* v0.10.3 Aegislash battle-only form */
+.battle-log .pokemon-avatar[title*="ブレード"]{filter:drop-shadow(0 0 5px rgba(239,68,68,.55))}
+.battle-log .pokemon-avatar[title*="シールド"]{filter:drop-shadow(0 0 5px rgba(59,130,246,.5))}
