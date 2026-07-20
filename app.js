@@ -1,6 +1,6 @@
 "use strict";
 
-const STORAGE_KEY = "pjcs-simulator-v10";
+const STORAGE_KEY = "pjcs-simulator-v101";
 const OLD_STORAGE_KEYS = [];
 const TURN_MS = 500;
 const SWITCH_COOLDOWN_TURNS = 90;
@@ -427,13 +427,14 @@ function applyEffects(user,target,move,rng,log,turn){
     const receiver=effect.target==="opponent"?target:user;
     const key=effect.stat==="attack"?"attackStage":"defenseStage";
     receiver[key]=clamp(receiver[key]+safeNumber(effect.delta),-4,4);
-    log.push(`${turnLabel(turn)} ${receiver.name}の${effect.stat==="attack"?"攻撃":"防御"}が${effect.delta>0?"上昇":"低下"}（${receiver[key]}段階）`);
+    log.push(`${turnLabel(turn)} ${logMon(receiver)}の${effect.stat==="attack"?"攻撃":"防御"}が${effect.delta>0?"上昇":"低下"}（${receiver[key]}段階）`);
   }
 }
 function turnLabel(turn){return `${(turn*TURN_MS/1000).toFixed(1)}秒`}
 function fastTiming(move){return `${move.turns}ターン / ${(move.turns*TURN_MS/1000).toFixed(1)}秒`}
-function forceSwitch(team,opp,log,turn){const options=alive(team).filter(i=>i!==team.active);if(!options.length)return;let best=options[0],score=-Infinity;for(const i of options){const s=matchupScore(team.party[i],opp);if(s>score){score=s;best=i}}team.active=best;team.party[best].fastPending=null;log.push(`${turnLabel(turn)} ${active(team).name}を繰り出した`)}
-function processFaints(a,b,log,turn){const am=active(a),bm=active(b);if(am&&am.currentHp<=0&&!am.fainted){am.fainted=true;am.currentHp=0;am.fastPending=null;log.push(`${turnLabel(turn)} ${am.name}がひんし`)}if(bm&&bm.currentHp<=0&&!bm.fainted){bm.fainted=true;bm.currentHp=0;bm.fastPending=null;log.push(`${turnLabel(turn)} ${bm.name}がひんし`)}if(!battleOver(a,b)){if(active(a).fainted)forceSwitch(a,active(b),log,turn);if(active(b).fainted)forceSwitch(b,active(a),log,turn)}}
+function logMon(mon){return mon?.id?`[[MON:${encodeURIComponent(mon.id)}]]`:escapeHtml(mon?.name||"?")}
+function forceSwitch(team,opp,log,turn){const options=alive(team).filter(i=>i!==team.active);if(!options.length)return;let best=options[0],score=-Infinity;for(const i of options){const s=matchupScore(team.party[i],opp);if(s>score){score=s;best=i}}team.active=best;team.party[best].fastPending=null;log.push(`${turnLabel(turn)} ${logMon(active(team))}を繰り出した`)}
+function processFaints(a,b,log,turn){const am=active(a),bm=active(b);if(am&&am.currentHp<=0&&!am.fainted){am.fainted=true;am.currentHp=0;am.fastPending=null;log.push(`${turnLabel(turn)} ${logMon(am)}がひんし`)}if(bm&&bm.currentHp<=0&&!bm.fainted){bm.fainted=true;bm.currentHp=0;bm.fastPending=null;log.push(`${turnLabel(turn)} ${logMon(bm)}がひんし`)}if(!battleOver(a,b)){if(active(a).fainted)forceSwitch(a,active(b),log,turn);if(active(b).fainted)forceSwitch(b,active(a),log,turn)}}
 
 function simulateBattle(playerRoster,playerPicks,opponentRoster,opponentPicks,seed,style="balanced",verbose=true,playerBuilds=state.playerBuilds,opponentBuilds=state.opponentBuilds,options={}){
   const rng=mulberry32(Number(seed)||1),p=createTeam(playerRoster,playerPicks,playerBuilds),o=createTeam(opponentRoster,opponentPicks,opponentBuilds),log=[];
@@ -461,15 +462,15 @@ function simulateBattle(playerRoster,playerPicks,opponentRoster,opponentPicks,se
         const dmg=shield?1:calcDamage(user,target,move);
         if(shield)item.other.shields-=1;
         target.currentHp-=dmg;
-        if(verbose)log.push(`${turnLabel(turn)} ${user.name}の${move.name} → ${target.name} ${dmg}ダメージ${shield?"（シールド）":""}（ゲージ技・固有ターンなし）`);
+        if(verbose)log.push(`${turnLabel(turn)} ${logMon(user)}の${move.name} → ${logMon(target)} ${dmg}ダメージ${shield?"（シールド）":""}（ゲージ技・固有ターンなし）`);
         applyEffects(user,target,move,rng,log,turn);processFaints(p,o,log,turn);
       }
       if(battleOver(p,o))return finishBattle(p,o,turn,log,"KO");
       continue;
     }
 
-    if(pa.type==="switch"&&active(p)===pActor&&!active(p).fainted&&p.switchCooldown===0){p.active=pa.index;p.switchCooldown=SWITCH_COOLDOWN_TURNS;if(verbose)log.push(`${turnLabel(turn)} あなたは${active(p).name}へ交代`)}
-    if(oa.type==="switch"&&active(o)===oActor&&!active(o).fainted&&o.switchCooldown===0){o.active=oa.index;o.switchCooldown=SWITCH_COOLDOWN_TURNS;if(verbose)log.push(`${turnLabel(turn)} 相手は${active(o).name}へ交代`)}
+    if(pa.type==="switch"&&active(p)===pActor&&!active(p).fainted&&p.switchCooldown===0){p.active=pa.index;p.switchCooldown=SWITCH_COOLDOWN_TURNS;if(verbose)log.push(`${turnLabel(turn)} あなたは${logMon(active(p))}へ交代`)}
+    if(oa.type==="switch"&&active(o)===oActor&&!active(o).fainted&&o.switchCooldown===0){o.active=oa.index;o.switchCooldown=SWITCH_COOLDOWN_TURNS;if(verbose)log.push(`${turnLabel(turn)} 相手は${logMon(active(o))}へ交代`)}
 
     if(pa.type==="fast"&&active(p)===pActor&&!active(p).fastPending)active(p).fastPending={remaining:pa.move.turns,move:pa.move};
     if(oa.type==="fast"&&active(o)===oActor&&!active(o).fastPending)active(o).fastPending={remaining:oa.move.turns,move:oa.move};
@@ -489,7 +490,7 @@ function simulateBattle(playerRoster,playerPicks,opponentRoster,opponentPicks,se
     for(const hit of damages){
       if(!hit.attacker.fainted&&hit.defender){
         hit.attacker.energy=clamp(hit.attacker.energy+hit.move.energy,0,100);hit.defender.currentHp-=hit.damage;
-        if(verbose)log.push(`${turnLabel(turn)} ${hit.attacker.name}の${hit.move.name} → ${hit.damage}ダメージ（${fastTiming(hit.move)}、E+${hit.move.energy}→${hit.attacker.energy}）`);
+        if(verbose)log.push(`${turnLabel(turn)} ${logMon(hit.attacker)}の${hit.move.name} → ${hit.damage}ダメージ（${fastTiming(hit.move)}、E+${hit.move.energy}→${hit.attacker.energy}）`);
       }
     }
     processFaints(p,o,log,turn);
@@ -569,17 +570,55 @@ function spriteUrl(p){
   const dex=Math.max(1,Math.trunc(Number(p?.dex)||0));
   return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${dex}.png`;
 }
+function shadowBadge(){
+  return `<span class="shadow-mark" title="シャドウポケモン" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 2.5c1.1 2.6 3.8 3.7 5.4 5.9 1.2 1.6 1.7 3.2 1.3 5.2-.6 3.6-3.3 6.1-6.7 6.1s-6.1-2.5-6.7-6.1c-.4-2 .1-3.6 1.3-5.2 1.1-1.5 2.7-2.5 3.7-4.1.6 1.8.3 3.2-.3 4.4 1.6-1.3 2.5-3.2 2-6.2Z"/><path class="shadow-mark-cut" d="M8.5 14.2c1.1.8 2.2 1.2 3.5 1.2s2.4-.4 3.5-1.2c-.6 1.9-1.8 3-3.5 3s-2.9-1.1-3.5-3Z"/></svg></span>`;
+}
 function pokemonAvatar(p,size="normal"){
   const initial=escapeHtml(String(p?.name||"?").replace(/[（(].*/,"").slice(0,1)||"?");
   const url=spriteUrl(p);
   const label=escapeHtml(String(p?.name||"ポケモン"));
-  if(!url)return `<span class="pokemon-avatar avatar-${escapeHtml(size)}" title="${label}"><span class="avatar-fallback avatar-fallback-solid" aria-hidden="true">${initial}</span></span>`;
-  return `<span class="pokemon-avatar avatar-${escapeHtml(size)}" title="${label}"><img src="${url}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="avatar-fallback avatar-fallback-solid" hidden aria-hidden="true">${initial}</span></span>`;
+  const shadowClass=p?.shadow?" is-shadow":"";
+  const badge=p?.shadow?shadowBadge():"";
+  if(!url)return `<span class="pokemon-avatar avatar-${escapeHtml(size)}${shadowClass}" title="${label}"><span class="avatar-fallback avatar-fallback-solid" aria-hidden="true">${initial}</span>${badge}</span>`;
+  return `<span class="pokemon-avatar avatar-${escapeHtml(size)}${shadowClass}" title="${label}"><img src="${url}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="avatar-fallback avatar-fallback-solid" hidden aria-hidden="true">${initial}</span>${badge}</span>`;
 }
 function spriteToken(p,size="inline"){
   if(!p)return '<span class="sprite-token sprite-missing" aria-label="データなし">?</span>';
   return `<span class="sprite-token" role="img" aria-label="${escapeHtml(p.name)}" title="${escapeHtml(p.name)}">${pokemonAvatar(p,size)}<span class="sr-only">${escapeHtml(p.name)}</span></span>`;
 }
+function selectedBattlePokemon(){
+  const mons=[];
+  for(let i=0;i<6;i++){
+    const p=effectivePokemon("player",i);if(p)mons.push(p);
+    const o=effectivePokemon("opponent",i);if(o)mons.push(o);
+  }
+  return mons;
+}
+function renderLegacyLogWithSprites(text){
+  const candidates=[...new Map(selectedBattlePokemon().map(p=>[p.name,p])).values()].sort((a,b)=>b.name.length-a.name.length);
+  const parts=[];let cursor=0;
+  while(cursor<text.length){
+    let best=null;
+    for(const p of candidates){const at=text.indexOf(p.name,cursor);if(at<0)continue;if(!best||at<best.at||(at===best.at&&p.name.length>best.p.name.length))best={at,p};}
+    if(!best){parts.push(escapeHtml(text.slice(cursor)));break;}
+    if(best.at>cursor)parts.push(escapeHtml(text.slice(cursor,best.at)));
+    parts.push(spriteToken(best.p,"log"));cursor=best.at+best.p.name.length;
+  }
+  return parts.join("");
+}
+function battleLogHtml(text){
+  const source=String(text??"");
+  const regex=/\[\[MON:([^\]]+)\]\]/g;
+  let html="",cursor=0,match,found=false;
+  while((match=regex.exec(source))){
+    found=true;html+=escapeHtml(source.slice(cursor,match.index));
+    const id=decodeURIComponent(match[1]);html+=spriteToken(POKEMON[id]||selectedBattlePokemon().find(p=>p.id===id),"log");
+    cursor=regex.lastIndex;
+  }
+  if(found)return html+escapeHtml(source.slice(cursor));
+  return renderLegacyLogWithSprites(source);
+}
+
 
 function rosterCard(side,index,id){
   const card=document.createElement("article");card.className="roster-slot-card";
@@ -707,7 +746,7 @@ function showResult(result,batch=null){
   }
   const battleLabel=result.quickBattleNumber?`第${result.quickBattleNumber}試合・乱数シード ${result.seed}`:`乱数シード ${result.seed??"—"}`;
   box.innerHTML=`<h3>${result.winner==="player"?"あなたの勝利":"相手の勝利"}</h3><p>${battleLabel}<br>${result.reason==="KO"?"3体を倒して決着":"時間切れ判定"}・${result.seconds.toFixed(1)}秒</p><div class="metric-row"><div class="metric"><strong>${result.player.alive} - ${result.opponent.alive}</strong><span>残存ポケモン</span></div><div class="metric"><strong>${result.player.shields} - ${result.opponent.shields}</strong><span>残りシールド</span></div><div class="metric"><strong>${result.turns}</strong><span>経過ターン</span></div></div>`;
-  const log=document.getElementById("battleLog");log.replaceChildren(...result.log.map(text=>{const li=document.createElement("li");li.textContent=text;return li}));if(!result.log.length){const li=document.createElement("li");li.textContent="ログなし";log.appendChild(li)}
+  const log=document.getElementById("battleLog");log.replaceChildren(...result.log.map(text=>{const li=document.createElement("li");li.innerHTML=battleLogHtml(text);return li}));if(!result.log.length){const li=document.createElement("li");li.textContent="ログなし";log.appendChild(li)}
 }
 function validPicks(){return state.playerPicks.length===3&&state.opponentPicks.length===3}
 function readyForBattle(){return validPicks()&&state.opponentRevealed}

@@ -22,3 +22,7 @@ This app uses or references public third-party data and sprite repositories.
 - Regional and alternate forms are displayed only when an explicit form-specific mapping exists.
 - Unverified event/costume forms use a text fallback instead of displaying the base form incorrectly.
 - Pokémon, character names, and related imagery remain the property of their respective rights holders.
+
+
+## Shadow indicator
+The purple shadow badge in this app is an original CSS/SVG indicator created for this project. It is not the official Pokémon GO Shadow icon and no official Shadow icon file is redistributed in this package.

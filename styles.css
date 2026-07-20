@@ -222,3 +222,15 @@ button,input,select{font-size:16px}input[type="search"]{font-size:16px!important
 .sprite-warning-cards .warning-card strong,.sprite-warning-cards .warning-card b{display:none}.warning-card{min-height:44px}.warning-card .sprite-token+.sprite-token{margin-left:-5px}
 .sprite-member{display:flex;align-items:center;gap:7px}.sprite-member>b{color:var(--muted)}.target-chip b{display:none}.target-chip{padding:4px}.heavy-chip strong{display:none}.heavy-chip{padding:5px}
 @media(max-width:560px){.party-balance-grid{grid-template-columns:1fr}.party-metrics{grid-template-columns:repeat(3,1fr)}.answer-board{grid-template-columns:1fr}.compact-matchup{grid-template-columns:1fr auto}.party-balance-title{align-items:start;flex-direction:column}.visual-role-section{padding:9px}}
+
+
+/* v0.10.1 — inline battle sprites and original shadow indicator */
+.avatar-log{width:30px;height:30px;border-radius:9px;background:transparent;border-color:transparent;box-shadow:none;overflow:visible}
+.avatar-log img{filter:drop-shadow(0 2px 2px rgba(0,0,0,.45));}
+.battle-log .sprite-token{margin:0 2px;transform:translateY(3px)}
+.battle-log li{line-height:1.9;min-height:42px}
+.shadow-mark{position:absolute;right:-3px;bottom:-3px;width:18px;height:18px;display:grid;place-items:center;border-radius:50%;background:radial-gradient(circle at 35% 28%,#d8b4fe 0 16%,#7e22ce 42%,#2e1065 100%);border:2px solid #f5e9ff;box-shadow:0 0 0 1px rgba(25,5,50,.9),0 0 8px rgba(192,132,252,.85);z-index:4}
+.shadow-mark svg{width:13px;height:13px;overflow:visible}.shadow-mark path{fill:#f5d0fe}.shadow-mark .shadow-mark-cut{fill:#4c1d95}
+.avatar-inline .shadow-mark,.avatar-log .shadow-mark{width:13px;height:13px;right:-2px;bottom:-2px;border-width:1px}.avatar-inline .shadow-mark svg,.avatar-log .shadow-mark svg{width:9px;height:9px}
+.is-shadow:before{content:"";position:absolute;inset:7%;border-radius:50%;box-shadow:0 0 10px 3px rgba(168,85,247,.32);pointer-events:none}
+@media(max-width:420px){.avatar-log{width:28px;height:28px}.battle-log{padding-left:20px}.battle-log li{padding:8px 7px}}
