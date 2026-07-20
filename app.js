@@ -565,6 +565,7 @@ function isAlternateSpriteForm(p){const form=String(p?.form||"");return Boolean(
 function spriteUrl(p){
   const key=normalizedSpriteKey(p);
   if(SPECIAL_SPRITE_FALLBACK_ONLY.has(key))return "";
+  if(key==="aegislash_shield")return "https://play.pokemonshowdown.com/sprites/gen6/aegislash-shield.png";
   if(SPECIAL_SPRITE_SLUGS[key])return `https://play.pokemonshowdown.com/sprites/gen5/${SPECIAL_SPRITE_SLUGS[key]}.png`;
   if(isAlternateSpriteForm(p)&&!SAME_APPEARANCE_ALT_SPRITES.has(key))return "";
   const dex=Math.max(1,Math.trunc(Number(p?.dex)||0));
