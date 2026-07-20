@@ -785,6 +785,7 @@ function renderSelection(){
   renderPickGrid("playerSelection",state.playerRoster,state.playerPicks,"player");
   renderPublicRosterGrid("opponentSelectionPreview",state.opponentRoster,"opponent");
   document.getElementById("playerSelectionSummary").textContent=selectionNames(state.playerRoster,state.playerPicks)||"未選択";
+  renderSelectionScorePanel();
   renderOpponentAiPanel();
   if(state.playerRoster.every(id=>POKEMON[id])&&!opponentSelectionIsFresh()&&!opponentAiComputing)ensureOpponentSelection();
 }
@@ -873,7 +874,11 @@ function simulateLineEstimate(line,opponentLines,seed,style,repeats=3){
 const DUEL_CACHE=new Map();
 const OPPONENT_DUEL_CACHE=new Map();
 const OPPONENT_ROLE_CACHE=new Map();
-function clearAnalysisCaches(){DUEL_CACHE.clear();OPPONENT_DUEL_CACHE.clear();OPPONENT_ROLE_CACHE.clear()}
+const PLAYER_META_DUEL_CACHE=new Map();
+const PARTY_SCORE_CACHE=new Map();
+const SELECTION_SCORE_CACHE=new Map();
+let partyScorePendingSignature=null;
+function clearAnalysisCaches(){DUEL_CACHE.clear();OPPONENT_DUEL_CACHE.clear();OPPONENT_ROLE_CACHE.clear();PLAYER_META_DUEL_CACHE.clear();PARTY_SCORE_CACHE.clear();SELECTION_SCORE_CACHE.clear();partyScorePendingSignature=null}
 function buildCacheSignature(roster,index,builds){
   const id=roster[index],b=normalizeBuild(POKEMON[id],builds?.[index]);
   return [id,b.level,b.atkIV,b.defIV,b.hpIV,b.fast,...b.charged].join(":");
@@ -1157,6 +1162,7 @@ function recommendationAnalysis(line){
   if(!warnings.length)warnings.push("相手6体すべてに全9シールド条件で安定した回答があり、明確な穴は小さい選出です。");
   return {rows,memberCoverage,heavy,narrow,warnings};
 }
+
 function renderRecommendations(results,currentEstimate=null){
   const panel=document.getElementById("recommendationPanel");panel.hidden=false;
   panel.innerHTML=`<div class="recommendation-heading"><div><p class="step">SELECTION COACH</p><h3>勝ち筋が太い選出候補 ✨</h3></div><span class="status-chip">全60候補を比較</span></div><p class="recommendation-intro">あなたの60通りを、各1対1対面のシールド0〜2枚×0〜2枚＝全9条件で一次比較し、上位候補を相手の60通り（先発を区別、控え順は同一）へ各3回、合計180試合で再検証しています。「刺さる」は全9条件で6勝以上かつ同数シールドで2勝以上を基準とします。表示％は大会の実使用率ではありません。</p>`;
@@ -1501,9 +1507,10 @@ function opponentPartyExplanation(team,score){
   const benchmark=metaBenchmarkPool();
   const covered=benchmark.filter(target=>team.some(id=>quickMatchupIndex(id,target)>4.2));
   const uncovered=benchmark.filter(id=>!covered.includes(id));
-  const safeIds=[...team].sort((a,b)=>roleValue(b,2)-roleValue(a,2)).slice(0,2);
-  const closerIds=[...team].sort((a,b)=>roleValue(b,1)-roleValue(a,1)).slice(0,2);
-  const leadIds=[...team].sort((a,b)=>Math.max(roleValue(b,0),roleValue(b,3))-Math.max(roleValue(a,0),roleValue(a,3))).slice(0,2);
+  const assignment=distinctOpponentRoleAssignment(team);
+  const leadIds=[assignment.lead,...team.filter(id=>id!==assignment.lead).sort((a,b)=>Math.max(roleValue(b,0),roleValue(b,3))-Math.max(roleValue(a,0),roleValue(a,3)))].slice(0,2);
+  const safeIds=[assignment.safe,...team.filter(id=>id!==assignment.safe).sort((a,b)=>roleValue(b,2)-roleValue(a,2))].slice(0,2);
+  const closerIds=[assignment.closer,...team.filter(id=>id!==assignment.closer).sort((a,b)=>roleValue(b,1)-roleValue(a,1))].slice(0,2);
   const attackTypes=[...new Set(team.flatMap(id=>pokemonAttackTypes(POKEMON[id])))];
   const weaknessCounts={};
   for(const id of team)for(const type of pokemonWeaknesses(POKEMON[id]))weaknessCounts[type]=(weaknessCounts[type]||0)+1;
@@ -1526,19 +1533,19 @@ function generateStrongOpponentRoster(forceDifferent=false){
   if(forceDifferent)ranked=ranked.filter(x=>x.team.join("|")!==oldKey).concat(ranked.filter(x=>x.team.join("|")===oldKey));
   const top=ranked.slice(0,Math.min(4,ranked.length));const pick=top[Math.floor(mulberry32(seed^0xA5A5A5A5)()*top.length)]||ranked[0];
   state.opponentPartySeed=seed;state.opponentRoster=[...pick.team];state.opponentBuilds=Array(6).fill(null);
-  state.opponentPartyMeta={version:10,generatedAt:Date.now(),...opponentPartyExplanation(pick.team,pick.score),sources:[DATA_INFO.liveMeta?"PvPoke live":"PvPoke fallback","内蔵対戦エンジン"]};
+  state.opponentPartyMeta={version:11,generatedAt:Date.now(),...opponentPartyExplanation(pick.team,pick.score),sources:[DATA_INFO.liveMeta?"PvPoke live":"PvPoke fallback","内蔵対戦エンジン"]};
   state.opponentPicks=[];state.opponentSelectionMeta=null;state.opponentRevealed=false;state.lastRecommendations=null;state.quickBattleNumber=0;clearAnalysisCaches();
 }
 function repairStateRosters(){
   const player=Array.from({length:6},(_,i)=>POKEMON[state.playerRoster?.[i]]?state.playerRoster[i]:null),seenDex=new Set();
   state.playerRoster=player.map(id=>{if(!id)return null;const dex=POKEMON[id].dex;if(seenDex.has(dex))return null;seenDex.add(dex);return id});
-  const invalidOpponent=!Array.isArray(state.opponentRoster)||state.opponentRoster.length!==6||state.opponentRoster.some(id=>!POKEMON[id])||state.opponentPartyMeta?.version!==10;
+  const invalidOpponent=!Array.isArray(state.opponentRoster)||state.opponentRoster.length!==6||state.opponentRoster.some(id=>!POKEMON[id])||state.opponentPartyMeta?.version!==11;
   if(invalidOpponent){
     if(META_BOOTSTRAP_READY)generateStrongOpponentRoster(false);
     else{
       const used=new Set(),seedTeam=[];
       for(const id of opponentCandidatePool()){const dex=POKEMON[id].dex;if(used.has(dex))continue;used.add(dex);seedTeam.push(id);if(seedTeam.length===6)break}
-      state.opponentRoster=seedTeam;state.opponentBuilds=Array(6).fill(null);state.opponentPartyMeta={version:10,generatedAt:Date.now(),coveredIds:[],weakIds:[],safeIds:[],closerIds:[],leadIds:[],attackTypes:[],sharedWeaknesses:[],complementPairs:[],poolSize:opponentCandidatePool().length,benchmarkSize:metaBenchmarkPool().length};
+      state.opponentRoster=seedTeam;state.opponentBuilds=Array(6).fill(null);state.opponentPartyMeta={version:11,generatedAt:Date.now(),coveredIds:[],weakIds:[],safeIds:[],closerIds:[],leadIds:[],attackTypes:[],sharedWeaknesses:[],complementPairs:[],poolSize:opponentCandidatePool().length,benchmarkSize:metaBenchmarkPool().length};
     }
   }
   state.playerBuilds=Array.from({length:6},(_,i)=>state.playerBuilds?.[i]||null);state.opponentBuilds=Array.from({length:6},(_,i)=>state.opponentBuilds?.[i]||null);
@@ -1626,6 +1633,138 @@ function recommendationAnswerCard(row){
   const player=effectivePokemon('player',row.playerIndex),opponent=effectivePokemon('opponent',row.opponentIndex);
   return `<article class="answer-card player-answer"><div class="answer-flow"><div><span>相手AI</span>${spriteToken(opponent,'option')}</div><b>⇩</b><div><span>あなたの回答</span>${spriteToken(player,'option')}</div></div><div class="answer-score"><strong>${row.duel.wins}/9</strong><span>${row.duel.wins>=6?'明確な回答':row.duel.wins>=4?'五分付近':'回答不足'}</span></div>${outcomeDots(row.duel,'player')}</article>`;
 }
+
+function distinctOpponentRoleAssignment(team){
+  let best={lead:team[0],safe:team[1]||team[0],closer:team[2]||team[0],score:-Infinity};
+  for(const lead of team)for(const safe of team)for(const closer of team){
+    if(new Set([lead,safe,closer]).size<3)continue;
+    const score=Math.max(roleValue(lead,0),roleValue(lead,3))*6+roleValue(safe,2)*8+roleValue(closer,1)*6;
+    if(score>best.score)best={lead,safe,closer,score};
+  }
+  return best;
+}
+function distinctPlayerRoleAssignment(metrics){
+  let best={lead:metrics[0],safe:metrics[1]||metrics[0],closer:metrics[2]||metrics[0],score:-Infinity};
+  for(const lead of metrics)for(const safe of metrics)for(const closer of metrics){
+    if(new Set([lead.playerIndex,safe.playerIndex,closer.playerIndex]).size<3)continue;
+    const score=lead.leadNorm*6+safe.safeNorm*8+closer.closerNorm*6;
+    if(score>best.score)best={lead,safe,closer,score};
+  }
+  return best;
+}
+function buildSignatureForSide(side){
+  const roster=state[rosterKey(side)],builds=state[buildsKey(side)];
+  return roster.map((id,index)=>id&&POKEMON[id]?buildCacheSignature(roster,index,builds):"empty").join("|");
+}
+function playerMetaDuel(playerIndex,targetId){
+  const playerSig=buildCacheSignature(state.playerRoster,playerIndex,state.playerBuilds),key=`${playerSig}|meta:${targetId}|shield9`;
+  if(PLAYER_META_DUEL_CACHE.has(key))return PLAYER_META_DUEL_CACHE.get(key);
+  const outcomes=[];
+  for(const playerShields of [0,1,2])for(const opponentShields of [0,1,2]){
+    const seed=stringHash(`${key}|${playerShields}|${opponentShields}`);
+    const result=simulateBattle(state.playerRoster,[playerIndex],[targetId],[0],seed,"balanced",false,state.playerBuilds,[null],{playerShields,opponentShields});
+    outcomes.push({playerShields,opponentShields,winner:result.winner,margin:clamp(result.player.hp-result.opponent.hp,-1,1)});
+  }
+  const summary=summarizeDuel(outcomes,"player");PLAYER_META_DUEL_CACHE.set(key,summary);return summary;
+}
+function weaknessBalance(mons){
+  const counts={},items=[];
+  for(const mon of mons){for(const type of pokemonWeaknesses(mon)){counts[type]=(counts[type]||0)+1;items.push({mon,type,covered:mons.some(other=>other.id!==mon.id&&effectiveness(type,other.types)<1)})}}
+  const covered=items.filter(x=>x.covered).length,total=items.length;
+  const overlapPenalty=Object.values(counts).reduce((sum,count)=>sum+(count>=3?(count-2)**1.35:0),0);
+  const concentration=scoreClamp(1-overlapPenalty/12);
+  return {counts,items,covered,total,coverRate:total?covered/total:1,concentration,shared:Object.entries(counts).filter(([,count])=>count>=3).sort((a,b)=>b[1]-a[1])};
+}
+function offensiveCoverage(mons,benchmarkIds){
+  const attackTypes=[...new Set(mons.flatMap(mon=>pokemonAttackTypes(mon)))];
+  const pressured=benchmarkIds.filter(id=>{const target=monFromId(id);return mons.some(mon=>[fastObject(mon),...chargedObjects(mon)].some(move=>move&&effectiveness(move.type,target.types)>1.01))});
+  return {attackTypes,pressured,pressureRate:benchmarkIds.length?pressured.length/benchmarkIds.length:0};
+}
+function playerMetaRoleMetrics(playerIndex,benchmarkIds){
+  const mon=effectivePokemon("player",playerIndex),duels=benchmarkIds.map(targetId=>({targetId,duel:playerMetaDuel(playerIndex,targetId)}));
+  const favorable=duels.filter(x=>duelIsStrong(x.duel)),hard=duels.filter(x=>duelIsHard(x.duel)),neutral=duels.filter(x=>!duelIsStrong(x.duel)&&!duelIsHard(x.duel));
+  const zeroWins=duels.filter(x=>x.duel.outcomes.find(o=>o.playerShields===0&&o.opponentShields===0)?.winner==="player").length;
+  const oneWins=duels.filter(x=>x.duel.outcomes.find(o=>o.playerShields===1&&o.opponentShields===1)?.winner==="player").length;
+  const shieldDown=duels.reduce((sum,x)=>sum+x.duel.shieldDownWins,0),fastest=fastestChargedProfile(mon);
+  const n=Math.max(1,duels.length),speed=Number.isFinite(fastest?.turns)?scoreClamp((24-fastest.turns)/18):0;
+  const leadNorm=scoreClamp((favorable.length+.45*neutral.length-.35*hard.length)/n);
+  const safeNorm=scoreClamp((favorable.length+.72*neutral.length-.42*hard.length)/n+speed*.12+(shieldDown/(n*3))*.12);
+  const closerNorm=scoreClamp((zeroWins+.52*oneWins)/(n*1.52)-hard.length/n*.12+(strongestChargedProfile(mon)?.power||0)/1000);
+  return {playerIndex,mon,duels,favorable,neutral,hard,zeroWins,oneWins,shieldDown,fastest,leadNorm,safeNorm,closerNorm};
+}
+function componentRow(label,points,max,reason){
+  const pct=max?clamp(points/max*100,0,100):0;
+  return `<article class="score-component"><div class="component-head"><strong>${escapeHtml(label)}</strong><b>${points.toFixed(1)}<small>/${max}</small></b></div><div class="component-bar"><i style="width:${pct.toFixed(1)}%"></i></div><p>${reason}</p></article>`;
+}
+function computePlayerPartyScore(){
+  const benchmark=metaBenchmarkPool(),deepBenchmark=benchmark.slice(0,24),mons=state.playerRoster.map((_,i)=>effectivePokemon("player",i));
+  const quickRows=benchmark.map(targetId=>{const target=monFromId(targetId),scores=mons.map(mon=>quickMatchupMon(mon,target));return {targetId,best:Math.max(...scores),answers:scores.filter(x=>x>4.2).length}});
+  const quickCovered=quickRows.filter(x=>x.answers>0),deepRows=deepBenchmark.map(targetId=>{const duels=mons.map((_,i)=>playerMetaDuel(i,targetId));return {targetId,duels,best:[...duels].sort((a,b)=>b.score-a.score)[0],answers:duels.filter(duelIsStrong).length}});
+  const deepCovered=deepRows.filter(x=>x.answers>0),metaPoints=18*(quickCovered.length/Math.max(1,benchmark.length))+12*(deepCovered.length/Math.max(1,deepBenchmark.length));
+  const weakness=weaknessBalance(mons),defensePoints=12*weakness.coverRate+8*weakness.concentration;
+  const offense=offensiveCoverage(mons,benchmark),offensePoints=8*Math.min(1,offense.attackTypes.length/10)+7*offense.pressureRate;
+  const roleMetrics=mons.map((_,i)=>playerMetaRoleMetrics(i,deepBenchmark));
+  const roleAssignment=distinctPlayerRoleAssignment(roleMetrics),bestLead=roleAssignment.lead,bestSafe=roleAssignment.safe,bestCloser=roleAssignment.closer;
+  const rolePoints=roleAssignment.score;
+  const redundancy=quickRows.reduce((sum,row)=>sum+Math.min(2,row.answers)/2,0)/Math.max(1,quickRows.length);
+  const quality=mons.reduce((sum,mon)=>sum+scoreClamp(((mon.metaScore||Math.max(70,100-(mon.rank||180)*.12))-70)/30),0)/mons.length;
+  const depthPoints=8*redundancy+7*quality;
+  const total=Math.round(metaPoints+defensePoints+offensePoints+rolePoints+depthPoints);
+  const holes=deepRows.filter(row=>row.answers===0).slice(0,6).map(row=>row.targetId);
+  const singleAnswers=deepRows.filter(row=>row.answers===1).slice(0,6).map(row=>row.targetId);
+  return {total,components:{metaPoints,defensePoints,offensePoints,rolePoints,depthPoints},benchmarkCount:benchmark.length,quickCovered:quickCovered.length,deepCount:deepBenchmark.length,deepCovered:deepCovered.length,weakness,offense,bestLead,bestSafe,bestCloser,redundancy,quality,holes,singleAnswers};
+}
+function partyScoreHtml(result){
+  const c=result.components,shared=result.weakness.shared;
+  const weaknesses=shared.length?shared.map(([type,count])=>`<span class="type-cover-chip type-${escapeHtml(type)}">${escapeHtml(typeName(type))}<em>${count}体</em></span>`).join(''):'<span class="good-note">3体以上で重なる弱点なし</span>';
+  const holes=result.holes.length?result.holes.map(id=>spriteToken(POKEMON[id],"option")).join(''):'<span class="good-note">上位24体に明確な未回答なし</span>';
+  return `<div class="score-card-head">${scoreRing(result.total,"6体パーティ評価")}<div><p class="step">TEAM BUILD SCORE</p><h3>あなたの6体パーティ評価</h3><p>アプリ独自式。現環境候補への実戦回答と、タイプ・役割の構造を分けて採点します。</p></div></div><div class="score-components">${componentRow('環境への回答',c.metaPoints,30,`上位${result.benchmarkCount}体へ簡易回答 ${result.quickCovered}体。上位${result.deepCount}体を9シールド条件で再検証し、明確な回答 ${result.deepCovered}体。`)}${componentRow('守備・弱点補完',c.defensePoints,20,`各ポケモンの弱点を別の味方が軽減できる割合 ${(result.weakness.coverRate*100).toFixed(0)}%。弱点集中も減点します。`)}${componentRow('技の攻撃範囲',c.offensePoints,15,`${result.offense.attackTypes.length}タイプの攻撃技を持ち、基準メタの${(result.offense.pressureRate*100).toFixed(0)}%へ効果抜群技を用意。`)}${componentRow('役割の完成度',c.rolePoints,20,`初手 ${Math.round(result.bestLead.leadNorm*100)}、引き先 ${Math.round(result.bestSafe.safeNorm*100)}、締め ${Math.round(result.bestCloser.closerNorm*100)}の適性指数から採点。`)}${componentRow('回答の厚み・個体性能',c.depthPoints,15,`1つの相手へ回答を2体以上持つ厚み ${(result.redundancy*100).toFixed(0)}%。現環境での個体性能も加味。`)}</div><div class="score-explain-grid"><section><h4>役割の中心</h4><div class="score-role-lane"><span>初手</span>${spriteToken(result.bestLead.mon,"option")}<em>有利${result.bestLead.favorable.length}・不利${result.bestLead.hard.length}</em></div><div class="score-role-lane"><span>引き先</span>${spriteToken(result.bestSafe.mon,"option")}<em>互角以上${result.bestSafe.favorable.length+result.bestSafe.neutral.length}/${result.deepCount}</em></div><div class="score-role-lane"><span>締め</span>${spriteToken(result.bestCloser.mon,"option")}<em>0盾勝利${result.bestCloser.zeroWins}/${result.deepCount}</em></div></section><section><h4>減点ポイント</h4><div class="score-chip-row">${weaknesses}</div><div class="score-hole-row"><span>上位24体で回答が薄い</span><div>${holes}</div></div></section></div><details class="score-formula"><summary>100点の配点を見る</summary><p>環境回答30点、守備補完20点、攻撃範囲15点、役割完成度20点、回答の厚み・現環境性能15点です。PvPoke順位だけでなく、現在の技構成で9通りのシールド対面を再計算します。</p></details>`;
+}
+function renderPlayerPartyScore(){
+  const root=document.getElementById("playerPartyScorePanel");if(!root)return;
+  if(state.playerRoster.some(id=>!id||!POKEMON[id])){root.innerHTML='<div class="score-empty"><strong>6体を登録するとパーティを100点満点で採点します</strong><span>環境回答・弱点補完・技範囲・初手／引き先／締めを評価します。</span></div>';return}
+  const signature=`party11|${buildSignatureForSide("player")}|${META_ORDER.slice(0,60).join(',')}`;
+  if(PARTY_SCORE_CACHE.has(signature)){root.innerHTML=partyScoreHtml(PARTY_SCORE_CACHE.get(signature));return}
+  root.innerHTML='<div class="score-loading"><strong>6体パーティを採点中…</strong><span>上位60体への簡易評価と、上位24体への9シールド対面を確認しています。</span></div>';
+  if(partyScorePendingSignature===signature)return;partyScorePendingSignature=signature;
+  setTimeout(()=>{try{const result=computePlayerPartyScore();PARTY_SCORE_CACHE.set(signature,result);if(buildSignatureForSide("player")&&signature===`party11|${buildSignatureForSide("player")}|${META_ORDER.slice(0,60).join(',')}`)root.innerHTML=partyScoreHtml(result)}catch(error){console.error(error);root.innerHTML='<div class="score-empty">採点に失敗しました。技・個体値を確認してください。</div>'}finally{if(partyScorePendingSignature===signature)partyScorePendingSignature=null}},30);
+}
+function playerSelectionRoleMetrics(index){
+  const mon=effectivePokemon("player",index),duels=state.opponentRoster.map((_,opponentIndex)=>({opponentIndex,duel:headToHeadBySlots(index,opponentIndex)}));
+  const favorable=duels.filter(x=>duelIsStrong(x.duel)),hard=duels.filter(x=>duelIsHard(x.duel)),neutral=duels.filter(x=>!duelIsStrong(x.duel)&&!duelIsHard(x.duel));
+  const zeroWins=duels.filter(x=>x.duel.outcomes.find(o=>o.playerShields===0&&o.opponentShields===0)?.winner==="player").length;
+  const oneWins=duels.filter(x=>x.duel.outcomes.find(o=>o.playerShields===1&&o.opponentShields===1)?.winner==="player").length;
+  const shieldDown=duels.reduce((sum,x)=>sum+x.duel.shieldDownWins,0),fastest=fastestChargedProfile(mon),speed=Number.isFinite(fastest?.turns)?scoreClamp((24-fastest.turns)/18):0;
+  const safeNorm=scoreClamp((favorable.length+.7*neutral.length-.4*hard.length)/6+speed*.12+(shieldDown/18)*.12);
+  const closerNorm=scoreClamp((zeroWins+.5*oneWins)/9-hard.length/6*.12+(strongestChargedProfile(mon)?.power||0)/1000);
+  return {index,mon,duels,favorable,hard,neutral,zeroWins,oneWins,shieldDown,fastest,safeNorm,closerNorm};
+}
+function computeSelectionScore(line){
+  const key=`selection11|${buildSignatureForSide("player")}|${buildSignatureForSide("opponent")}|${line.join(',')}`;if(SELECTION_SCORE_CACHE.has(key))return SELECTION_SCORE_CACHE.get(key);
+  const opponentLines=lineupPermutations(),allLines=lineupPermutations(),ranked=allLines.map(candidate=>({line:candidate,value:lineupScreenScore(candidate,opponentLines)})).sort((a,b)=>b.value-a.value);
+  const selectedValue=lineupScreenScore(line,opponentLines),rank=ranked.findIndex(row=>row.line.join(',')===line.join(','))+1,percentile=ranked.length<=1?1:(ranked.length-rank)/(ranked.length-1);
+  const rows=state.opponentRoster.map((_,opponentIndex)=>{const duels=line.map(playerIndex=>({playerIndex,duel:headToHeadBySlots(playerIndex,opponentIndex)})).sort((a,b)=>b.duel.score-a.duel.score);return {opponentIndex,best:duels[0],answers:duels.filter(x=>duelIsStrong(x.duel))}});
+  const strongRows=rows.filter(row=>row.answers.length>0),avgBestWins=rows.reduce((sum,row)=>sum+row.best.duel.wins,0)/6;
+  const tacticalPoints=30*percentile,coveragePoints=15*(strongRows.length/6)+10*(avgBestWins/9);
+  const leadDuels=state.opponentRoster.map((_,opponentIndex)=>headToHeadBySlots(line[0],opponentIndex)),leadAvg=leadDuels.reduce((s,d)=>s+d.wins,0)/6,leadHard=leadDuels.filter(duelIsHard).length,leadPoints=10*(leadAvg/9)+5*(1-leadHard/6);
+  const safe=playerSelectionRoleMetrics(line[1]),closer=playerSelectionRoleMetrics(line[2]),rolePoints=8*safe.safeNorm+7*closer.closerNorm;
+  const redundancy=rows.reduce((sum,row)=>sum+Math.min(2,row.answers.length)/2,0)/6;
+  const selectedMons=line.map(index=>effectivePokemon("player",index)),weakness=weaknessBalance(selectedMons),supportPoints=7*redundancy+3*(weakness.coverRate*.65+weakness.concentration*.35);
+  const total=Math.round(tacticalPoints+coveragePoints+leadPoints+rolePoints+supportPoints),heavy=rows.filter(row=>row.answers.length===0),narrow=rows.filter(row=>row.answers.length===1);
+  const result={total,rank,tacticalPoints,coveragePoints,leadPoints,rolePoints,supportPoints,strongRows,avgBestWins,leadAvg,leadHard,safe,closer,redundancy,weakness,rows,heavy,narrow,line};SELECTION_SCORE_CACHE.set(key,result);return result;
+}
+function selectionScoreHtml(result){
+  const lead=effectivePokemon("player",result.line[0]);
+  const heavy=result.heavy.length?result.heavy.map(row=>spriteToken(effectivePokemon("opponent",row.opponentIndex),"option")).join(''):'<span class="good-note">相手6体すべてに回答あり</span>';
+  const narrow=result.narrow.length?result.narrow.map(row=>`<span class="single-answer-chip">${spriteToken(effectivePokemon("opponent",row.opponentIndex),"inline")}<b>→</b>${spriteToken(effectivePokemon("player",row.answers[0].playerIndex),"inline")}</span>`).join(''):'<span class="good-note">回答の1体依存は小さい</span>';
+  return `<div class="score-card-head">${scoreRing(result.total,"3体選出評価")}<div><p class="step">PICK SCORE</p><h3>この3体選出の評価</h3><p>相手の公開6体だけを使い、相手の実際の3体を覗かず採点しています。</p></div></div><div class="score-components selection-score-components">${componentRow('60選出内の相対順位',result.tacticalPoints,30,`先発を区別した60通り中 ${result.rank}位。相手の60選出へ対する1対1配置評価を比較。`)}${componentRow('相手6体への回答力',result.coveragePoints,25,`明確な回答 ${result.strongRows.length}/6体。各相手への最善対面は平均 ${result.avgBestWins.toFixed(1)}/9勝。`)}${componentRow('先発の安定性',result.leadPoints,15,`先発の平均 ${result.leadAvg.toFixed(1)}/9勝。明確に不利な初手は${result.leadHard}体。`)}${componentRow('引き先・締めの成立',result.rolePoints,15,`引き先指数 ${Math.round(result.safe.safeNorm*100)}、締め指数 ${Math.round(result.closer.closerNorm*100)}。技回転と0盾性能を含みます。`)}${componentRow('回答の厚み・3体補完',result.supportPoints,10,`2体以上で回答できる厚み ${(result.redundancy*100).toFixed(0)}%。3体内の弱点補完率 ${(result.weakness.coverRate*100).toFixed(0)}%。`)}</div><div class="score-explain-grid"><section><h4>役割配置</h4><div class="score-role-lane"><span>先発</span>${spriteToken(lead,"option")}<em>平均${result.leadAvg.toFixed(1)}/9</em></div><div class="score-role-lane"><span>引き先</span>${spriteToken(result.safe.mon,"option")}<em>互角以上${result.safe.favorable.length+result.safe.neutral.length}/6</em></div><div class="score-role-lane"><span>締め</span>${spriteToken(result.closer.mon,"option")}<em>0盾勝利${result.closer.zeroWins}/6</em></div></section><section><h4>選出リスク</h4><div class="score-hole-row"><span>3体全員で重い</span><div>${heavy}</div></div><div class="score-hole-row"><span>回答が1体だけ</span><div>${narrow}</div></div></section></div><details class="score-formula"><summary>100点の配点を見る</summary><p>60選出内の相対順位30点、相手6体への回答25点、先発15点、引き先・締め15点、回答の厚みと3体補完10点です。点数は大会の勝率ではなく、選出判断を比較するためのコーチ指標です。</p></details>`;
+}
+function renderSelectionScorePanel(){
+  const root=document.getElementById("selectionScorePanel");if(!root)return;
+  if(state.playerPicks.length!==3){root.innerHTML=`<div class="score-empty"><strong>3体を選ぶと、その場で100点満点の選出評価を表示します</strong><span>1体目を先発、2体目を引き先、3体目を締めとして採点します。</span></div>`;return}
+  try{root.innerHTML=selectionScoreHtml(computeSelectionScore([...state.playerPicks]))}catch(error){console.error(error);root.innerHTML='<div class="score-empty">選出の採点に失敗しました。6体や技設定を確認してください。</div>'}
+}
+
 function renderRecommendations(results,currentEstimate=null){
   const panel=document.getElementById("recommendationPanel");panel.hidden=false;
   panel.innerHTML=`<div class="recommendation-heading"><div><p class="step">SELECTION COACH</p><h3>勝ち筋が太い選出</h3></div><span class="status-chip">60候補→上位を180試合</span></div><p class="basis-note">％は相手の60選出を等確率としたシミュレーター値です。</p>`;
@@ -1651,14 +1790,60 @@ function renderRecommendations(results,currentEstimate=null){
 }
 
 function typeChipList(types){return (types||[]).map(type=>`<span class="balance-type-chip type-${escapeHtml(type)}">${escapeHtml(typeName(type))}</span>`).join('')}
-function roleSpriteLane(label,ids){return `<div class="role-sprite-lane"><span>${label}</span><div>${(ids||[]).map(id=>spriteToken(POKEMON[id],"option")).join('')||'<small>候補なし</small>'}</div></div>`}
+function scoreClamp(value){return clamp(Number.isFinite(Number(value))?Number(value):0,0,1)}
+function scoreGrade(score){if(score>=90)return {label:"大会級",cls:"elite"};if(score>=80)return {label:"かなり良い",cls:"great"};if(score>=70)return {label:"良い",cls:"good"};if(score>=60)return {label:"要調整",cls:"fair"};return {label:"改善余地大",cls:"weak"}}
+function scoreRing(score,label="SCORE"){
+  const value=clamp(Math.round(score),0,100),grade=scoreGrade(value);
+  return `<div class="score-ring score-${grade.cls}" style="--score:${value};--score-angle:${(value*3.6).toFixed(1)}deg" role="img" aria-label="${label} ${value}点"><div><strong>${value}</strong><span>/100</span><small>${escapeHtml(grade.label)}</small></div></div>`;
+}
+function strongestChargedProfile(mon){
+  return chargedObjects(mon).map(move=>({move,turns:firstChargedTurns(mon,move),power:safeNumber(move.power),efficiency:safeNumber(move.power)/Math.max(1,safeNumber(move.energy))})).sort((a,b)=>b.power-a.power||b.efficiency-a.efficiency)[0]||null;
+}
+function quickMatchupMon(attacker,defender){
+  if(!attacker||!defender)return -99;
+  const fast=fastObject(attacker),charged=chargedObjects(attacker);
+  const fastPressure=fast?(isAegislash(attacker)?(1/Math.max(1,fast.turns))*.45:effectiveness(fast.type,defender.types)*(safeNumber(fast.power)/Math.max(1,fast.turns))*.45):0;
+  const chargedPressure=charged.length?Math.max(...charged.map(move=>effectiveness(move.type,defender.types)*(safeNumber(move.power)/Math.max(30,safeNumber(move.energy))))):0;
+  const incomingFast=fastObject(defender),incomingMoves=chargedObjects(defender);
+  const incoming=Math.max(incomingFast?effectiveness(incomingFast.type,attacker.types):1,...incomingMoves.map(move=>effectiveness(move.type,attacker.types)));
+  const stat=Math.log(Math.max(1,attacker.atk*attacker.def*attacker.hp))/20;
+  return fastPressure+chargedPressure*1.25-incoming*.55+stat;
+}
+function teamRoleDetail(id,role,benchmark){
+  const mon=monFromId(id),scores=benchmark.map(target=>quickMatchupMon(mon,monFromId(target)));
+  const favorable=scores.filter(v=>v>4.2).length,hard=scores.filter(v=>v<1.4).length,neutral=Math.max(0,scores.length-favorable-hard);
+  const fastest=fastestChargedProfile(mon),strongest=strongestChargedProfile(mon),roleIndex=role==="lead"?0:role==="safe"?2:1;
+  const roleScore=Math.round(roleValue(id,roleIndex));
+  let why=[];
+  if(role==="lead"){
+    why=[`基準${benchmark.length}体へ先手圧力 ${favorable}体`,`明確に苦しい ${hard}体`,fastest?`${fastest.move.name}まで約${fastest.turns}T`:"ゲージ到達データなし"];
+  }else if(role==="safe"){
+    why=[`互角以上 ${favorable+neutral}/${benchmark.length}体`,`明確に苦しい ${hard}体`,fastest?`最速${fastest.move.name} 約${fastest.turns}T`:"ゲージ到達データなし"];
+  }else{
+    why=[strongest?`${strongest.move.name} 威力${strongest.power}`:"主力ゲージ技なし",`締め役指数 ${roleScore}`,`攻撃タイプ ${pokemonAttackTypes(mon).map(typeName).join("・")}`];
+  }
+  return {id,role,roleScore,favorable,neutral,hard,fastest,strongest,why};
+}
+function roleExplainCard(label,id,role,benchmark){
+  if(!id||!POKEMON[id])return `<article class="role-explain-card"><span class="role-label">${escapeHtml(label)}</span><small>候補なし</small></article>`;
+  const detail=teamRoleDetail(id,role,benchmark),mon=POKEMON[id];
+  return `<article class="role-explain-card"><header>${spriteToken(mon,"option")}<div><span class="role-label">${escapeHtml(label)}</span><strong>${detail.roleScore}</strong><small>役割指数</small></div></header><div class="role-reason-pills">${detail.why.map(x=>`<span>${escapeHtml(x)}</span>`).join('')}</div></article>`;
+}
+function complementDirection(fromId,toId,types){
+  if(!types?.length)return '';
+  const to=POKEMON[toId];
+  const chips=types.map(type=>`<span class="type-cover-chip type-${escapeHtml(type)}">${escapeHtml(typeName(type))}<em>${formatMultiplier(effectiveness(type,to.types))}</em></span>`).join('');
+  return `<div class="complement-direction">${spriteToken(POKEMON[fromId],"inline")}<span>の弱点</span><div>${chips}</div><b>→</b>${spriteToken(to,"inline")}<span>が軽減</span></div>`;
+}
 function opponentPartyBalanceHtml(meta){
   if(!meta)return '';
-  const covered=(meta.coveredIds||[]).length,benchmark=meta.benchmarkSize||0;
+  const benchmark=metaBenchmarkPool(),covered=(meta.coveredIds||[]).length,benchmarkCount=meta.benchmarkSize||benchmark.length;
   const maxShared=(meta.sharedWeaknesses||[])[0]?.[1]||0;
-  const pairs=(meta.complementPairs||[]).map(pair=>`<article class="complement-card"><div>${spriteToken(POKEMON[pair.aId],"option")}<b>⇄</b>${spriteToken(POKEMON[pair.bId],"option")}</div><strong>${pair.total}弱点を相互補完</strong><small>${pair.aCovered.length}＋${pair.bCovered.length}</small></article>`).join('');
+  const leadId=(meta.leadIds||[])[0],safeId=(meta.safeIds||[])[0],closerId=(meta.closerIds||[])[0];
+  const pairs=(meta.complementPairs||[]).map(pair=>`<article class="complement-card detailed"><div class="complement-pair-head">${spriteToken(POKEMON[pair.aId],"option")}<b>⇄</b>${spriteToken(POKEMON[pair.bId],"option")}<strong>${pair.total}タイプを補完</strong></div>${complementDirection(pair.aId,pair.bId,pair.aCovered)}${complementDirection(pair.bId,pair.aId,pair.bCovered)}</article>`).join('');
+  const shared=(meta.sharedWeaknesses||[]).length?`<div class="shared-weakness-row"><span>重複弱点</span>${meta.sharedWeaknesses.map(([type,count])=>`<span class="type-cover-chip type-${escapeHtml(type)}">${escapeHtml(typeName(type))}<em>${count}体</em></span>`).join('')}</div>`:'<div class="shared-weakness-row is-good"><b>✓</b><span>3体以上で重なる弱点なし</span></div>';
   const holes=(meta.weakIds||[]).length?`<div class="party-hole-list">${meta.weakIds.map(id=>spriteToken(POKEMON[id],"option")).join('')}<span>残る注意対象</span></div>`:'<div class="party-complete"><b>✓</b><span>基準メタへの明確な穴は小さい</span></div>';
-  return `<section class="party-balance"><div class="party-balance-title"><strong>この6体がバランス良い理由</strong><small>画像に触れると名前を確認できます</small></div><div class="party-metrics"><div><strong>${covered}/${benchmark}</strong><span>基準メタへ回答</span></div><div><strong>${(meta.attackTypes||[]).length}</strong><span>攻撃タイプ</span></div><div><strong>${maxShared||'―'}</strong><span>最大弱点重複</span></div></div><div class="party-balance-grid"><section><h4>役割分担</h4>${roleSpriteLane('初手圧力',meta.leadIds)}${roleSpriteLane('引き先',meta.safeIds)}${roleSpriteLane('締め',meta.closerIds)}</section><section><h4>弱点補完の軸</h4><div class="complement-grid">${pairs||'<small class="muted">強い相互補完ペアを検出できませんでした。</small>'}</div></section></div><section class="attack-coverage"><h4>技の攻撃範囲</h4><div>${typeChipList(meta.attackTypes)}</div></section>${holes}</section>`;
+  return `<section class="party-balance"><div class="party-balance-title"><strong>この6体がバランス良い理由</strong><small>役割指数・技回転・タイプ補完を表示</small></div><div class="party-metrics"><div><strong>${covered}/${benchmarkCount}</strong><span>基準メタへ回答</span></div><div><strong>${(meta.attackTypes||[]).length}</strong><span>攻撃タイプ</span></div><div><strong>${maxShared||'0'}</strong><span>最大弱点重複</span></div></div><section><h4>役割が成立する根拠</h4><div class="role-explain-grid">${roleExplainCard('初手圧力',leadId,'lead',benchmark)}${roleExplainCard('引き先',safeId,'safe',benchmark)}${roleExplainCard('締め',closerId,'closer',benchmark)}</div></section><section><h4>弱点補完の軸</h4><div class="complement-grid">${pairs||'<small class="muted">強い相互補完ペアを検出できませんでした。</small>'}</div>${shared}</section><section class="attack-coverage"><h4>技の攻撃範囲</h4><div>${typeChipList(meta.attackTypes)}</div></section>${holes}</section>`;
 }
 function renderRosters(){
   document.getElementById("playerRoster").replaceChildren(...Array.from({length:6},(_,i)=>rosterCard("player",i,state.playerRoster[i])));
@@ -1666,6 +1851,7 @@ function renderRosters(){
   document.getElementById("playerReady").textContent=`${state.playerRoster.filter(Boolean).length} / 6`;
   document.getElementById("opponentReady").textContent="AI自動生成";
   const info=document.getElementById("opponentGenerationInfo");if(info)info.innerHTML=opponentPartyBalanceHtml(state.opponentPartyMeta);
+  renderPlayerPartyScore();
   const chip=document.getElementById("poolChip");if(chip)chip.textContent=`${DATA_INFO.count}体`;
 }
 function renderDataLibrary(query=""){

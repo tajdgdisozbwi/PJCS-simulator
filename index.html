@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="PJCS Sim" />
-  <title>PJCS Pokémon GO Simulator v0.10.5</title>
+  <title>PJCS Pokémon GO Simulator v0.11</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -47,6 +47,7 @@
         <section class="team-card"><div class="team-card-header"><h3>あなた</h3><span id="playerReady" class="mini-status">6 / 6</span></div><div id="playerRoster" class="roster-grid"></div></section>
         <section class="team-card opponent-auto-card"><div class="team-card-header"><div><h3>相手AI</h3><small>最新メタから自動構築・手動変更なし</small></div><span id="opponentReady" class="mini-status">AI自動生成</span></div><div id="opponentGenerationInfo" class="opponent-generation-info"></div><div id="opponentRoster" class="roster-grid"></div><button id="regenerateOpponent" class="secondary-button full" type="button">相手6体を再生成</button></section>
       </div>
+      <section id="playerPartyScorePanel" class="score-coach-panel" aria-live="polite"></section>
       <button id="saveRosters" class="primary-button full" type="button">あなたの6体を保存して選出へ</button>
       <p id="rosterMessage" class="message" aria-live="polite"></p>
     </section>
@@ -72,6 +73,7 @@
           <div id="opponentSelectionPreview" class="public-pick-grid selection-scroll" aria-label="相手の公開6体"></div>
         </section>
       </div>
+      <section id="selectionScorePanel" class="score-coach-panel selection-score-panel" aria-live="polite"></section>
       <section id="opponentAiPanel" class="team-card opponent-ai-panel" aria-live="polite">
         <div class="team-card-header"><h3>相手AIの選出状況</h3><span id="opponentAiStatus" class="mini-status">6体を分析中</span></div>
         <div id="opponentAiContent" class="opponent-ai-content"><p class="muted">相手の60通りを比較しています。</p></div>
@@ -147,7 +149,7 @@
     <p id="buildMessage" class="message" aria-live="polite"></p>
   </dialog>
 
-  <footer class="app-footer">PJCS training simulator v0.10.5 / transparent selection analysis / form-checked pixel sprites</footer>
+  <footer class="app-footer">PJCS training simulator v0.11 / transparent selection analysis / form-checked pixel sprites</footer>
   <script src="embedded-data.js"></script>
   <script src="app.js" defer></script>
 </body>
