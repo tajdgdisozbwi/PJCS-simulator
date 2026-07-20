@@ -15,3 +15,10 @@ This app uses or references public third-party data and sprite repositories.
 - Images are not bundled in this ZIP.
 - Pokémon and related images are owned by their respective rights holders.
 - If an external image cannot be loaded or a form is not verified, the app shows a text fallback icon instead of a potentially incorrect image.
+
+
+## v0.10 sprite handling
+- Explanatory text uses externally loaded pixel-sprite thumbnails from PokéAPI and Pokémon Showdown.
+- Regional and alternate forms are displayed only when an explicit form-specific mapping exists.
+- Unverified event/costume forms use a text fallback instead of displaying the base form incorrectly.
+- Pokémon, character names, and related imagery remain the property of their respective rights holders.
