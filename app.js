@@ -1553,7 +1553,12 @@ function opponentMatchupReasons(opponentIndex,playerIndex){
   const reasons=[],fast=fastObject(attacker),playerFast=fastObject(defender),pressure=bestPressureMove(attacker,defender);const fastEff=effectiveness(fast.type,defender.types),incomingFastEff=effectiveness(playerFast.type,attacker.types);
   if(isAegislash(attacker))reasons.push(`シールド中：通常技1ダメージ・E+6（${fast.turns}T）`);
   else reasons.push(`通常技 ${fast.name}：${formatMultiplier(fastEff)}`);
-  if(pressure)reasons.push(`ゲージ技 ${pressure.move.name}：ブレード攻撃で${formatMultiplier(pressure.eff)}・約${pressure.turns}T`);
+  if(pressure){
+    const chargedDetail=isAegislash(attacker)
+      ? `ブレードフォルムの攻撃実数値で計算・相性${formatMultiplier(pressure.eff)}・約${pressure.turns}T`
+      : `相性${formatMultiplier(pressure.eff)}・約${pressure.turns}T`;
+    reasons.push(`ゲージ技 ${pressure.move.name}：${chargedDetail}`);
+  }
   if(incomingFastEff<1)reasons.push(`相手の${playerFast.name}を${formatMultiplier(incomingFastEff)}に抑える`);
   const resisted=chargedObjects(defender).map(move=>({move,eff:effectiveness(move.type,attacker.types)})).filter(x=>x.eff<1).sort((a,b)=>a.eff-b.eff);
   if(resisted.length)reasons.push(`${resisted[0].move.name}を${formatMultiplier(resisted[0].eff)}に抑える`);
