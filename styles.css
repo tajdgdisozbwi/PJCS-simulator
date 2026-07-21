@@ -339,3 +339,8 @@ button,input,select{font-size:16px}input[type="search"]{font-size:16px!important
 .matchup-bridge.bridge-even{--bridge-color:#f8d66d}
 .matchup-bridge.bridge-bad{--bridge-color:#ffad6b}
 .matchup-bridge.bridge-danger{--bridge-color:#ff7383}
+
+/* v0.13 championship battle AI */
+.ai-tactics-card{margin-top:12px;padding:13px;border:1px solid var(--border);border-radius:16px;background:rgba(15,23,42,.72)}
+.ai-tactics-card summary{cursor:pointer;font-weight:850}.ai-tactics-grid{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.ai-tactics-grid span{padding:5px 8px;border:1px solid var(--border);border-radius:999px;background:var(--card2);font-size:.72rem;color:var(--text)}.ai-tactics-card p{margin:8px 0 0;color:var(--muted);font-size:.74rem;line-height:1.55}
+.tactics-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.tactic-side{display:flex;flex-wrap:wrap;gap:5px;padding:10px;border:1px solid var(--border);border-radius:13px;background:#0f172a}.tactic-side strong{width:100%;font-size:.78rem}.tactic-side span{font-size:.68rem;color:var(--muted);padding:3px 6px;border-radius:999px;background:var(--card2)}@media(max-width:520px){.tactics-summary{grid-template-columns:1fr}}

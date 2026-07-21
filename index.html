@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="PJCS Sim" />
-  <title>PJCS Pokémon GO Simulator v0.12.2</title>
+  <title>PJCS Pokémon GO Simulator v0.13</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -85,7 +85,7 @@
     <section id="battle" class="panel">
       <div class="section-heading"><div><p class="step">STEP 3</p><h2>3対3を自動シミュレーション</h2></div><span class="status-chip">1ターン＝0.5秒</span></div>
       <div class="battle-config card-grid">
-        <label class="compact-control">AIのばらつき<select id="aiStyle"><option value="balanced">標準</option><option value="aggressive">攻撃的</option><option value="conservative">慎重</option></select></label>
+        <label class="compact-control">AIのばらつき<select id="aiStyle"><option value="championship" selected>大会AI</option><option value="balanced">標準</option><option value="aggressive">攻撃的</option><option value="conservative">慎重</option></select></label>
         <label class="compact-control">乱数シード<input id="seedInput" type="number" inputmode="numeric" value="20260719" /></label>
       </div>
       <section class="current-game">
@@ -94,7 +94,7 @@
       </section>
       <section id="opponentBattleReason" class="opponent-battle-reason" hidden aria-live="polite"></section>
       <div class="button-row three"><button id="runBattle" class="primary-button" type="button">第1試合を自動対戦</button><button id="runBatch" class="secondary-button" type="button">100試合で勝率分析</button><button id="analyzeSelections" class="spark-button" type="button">✨ 勝てる選出を探す</button></div>
-      <section id="battleResult" class="result-card" aria-live="polite"><p>選出を確定すると自動対戦できます。</p></section>
+      <section id="battleResult" class="result-card" aria-live="polite"><p>選出を確定すると自動対戦できます。</p></section><details class="ai-tactics-card"><summary>大会AIが考慮する戦術</summary><div class="ai-tactics-grid"><span>不利対面の交代</span><span>低HPへのゲージ技キャッチ</span><span>能力低下の交代解除</span><span>エネルギーを残す引き</span><span>安い技によるブラフ</span><span>高火力技を警戒したシールド</span><span>ブラフ読みのシールド温存</span><span>ゲージ技前の起点作り</span><span>通常技タイミング調整</span></div><p>人間の心理を完全再現するものではなく、観測可能なHP・通常技回数・推定エネルギー・残りシールド・交代可能時間から判断するヒューリスティックAIです。</p></details>
       <section id="recommendationPanel" class="recommendation-panel" hidden aria-live="polite"></section>
       <details class="log-card"><summary>技タイミング付きログを見る</summary><ol id="battleLog" class="battle-log"></ol></details>
     </section>
@@ -149,7 +149,7 @@
     <p id="buildMessage" class="message" aria-live="polite"></p>
   </dialog>
 
-  <footer class="app-footer">PJCS training simulator v0.12.2 / transparent selection analysis / form-checked pixel sprites</footer>
+  <footer class="app-footer">PJCS training simulator v0.13 / transparent selection analysis / form-checked pixel sprites</footer>
   <script src="embedded-data.js"></script>
   <script src="app.js" defer></script>
 </body>
