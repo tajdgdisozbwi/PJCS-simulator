@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="PJCS Sim" />
-  <title>PJCS Pokémon GO Simulator v0.11.3</title>
+  <title>PJCS Pokémon GO Simulator v0.11.4</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -45,7 +45,7 @@
       <p class="lead">あなた側は空の6枠から登録します。相手側は2026年7月の最新メタ上位120体を候補とし、技範囲、倍率、耐性、引き先・締め役適性、9シールド対面を評価して自動生成します。新しいマッチごとに、強さを維持しながら一部の構成が変化します。</p>
       <div class="two-column">
         <section class="team-card"><div class="team-card-header"><h3>あなた</h3><span id="playerReady" class="mini-status">6 / 6</span></div><div id="playerRoster" class="roster-grid"></div></section>
-        <section class="team-card opponent-auto-card"><div class="team-card-header"><div><h3>相手AI</h3><small>最新メタから自動構築・手動変更なし</small></div><span id="opponentReady" class="mini-status">AI自動生成</span></div><div id="opponentGenerationInfo" class="opponent-generation-info"></div><div id="opponentRoster" class="roster-grid"></div><button id="regenerateOpponent" class="secondary-button full" type="button">相手6体を再生成</button></section>
+        <section class="team-card opponent-auto-card"><div class="team-card-header"><div><h3>相手AI</h3><small>最新メタから自動構築・手動変更なし</small></div><span id="opponentReady" class="mini-status">AI自動生成</span></div><div id="opponentRoster" class="roster-grid"></div><div id="opponentGenerationInfo" class="opponent-generation-info"></div><button id="regenerateOpponent" class="secondary-button full" type="button">相手6体を再生成</button></section>
       </div>
       <section id="playerPartyScorePanel" class="score-coach-panel" aria-live="polite"></section>
       <button id="saveRosters" class="primary-button full" type="button">あなたの6体を保存して選出へ</button>
@@ -149,7 +149,7 @@
     <p id="buildMessage" class="message" aria-live="polite"></p>
   </dialog>
 
-  <footer class="app-footer">PJCS training simulator v0.11.3 / transparent selection analysis / form-checked pixel sprites</footer>
+  <footer class="app-footer">PJCS training simulator v0.11.4 / transparent selection analysis / form-checked pixel sprites</footer>
   <script src="embedded-data.js"></script>
   <script src="app.js" defer></script>
 </body>

@@ -38,7 +38,7 @@ body{background:radial-gradient(circle at 12% -4%,rgba(85,183,255,.28),transpare
 body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.22;background-image:radial-gradient(circle at center,transparent 0 11px,rgba(255,255,255,.08) 12px 13px,transparent 14px);background-size:74px 74px;mask-image:linear-gradient(to bottom,black,transparent 55%)}
 button,input,select{font-size:16px}input[type="search"]{font-size:16px!important;touch-action:manipulation}
 .app-header{background:linear-gradient(135deg,rgba(10,29,57,.96),rgba(16,42,78,.92));border-bottom-color:rgba(85,183,255,.35);box-shadow:0 14px 40px rgba(0,0,0,.28)}
-.app-header:after{content:"";position:absolute;width:54px;height:54px;right:112px;top:calc(9px + env(safe-area-inset-top));border-radius:50%;border:5px solid rgba(255,255,255,.14);background:linear-gradient(to bottom,var(--red) 0 45%,rgba(255,255,255,.92) 46% 54%,var(--yellow) 55%);box-shadow:inset 0 0 0 8px rgba(7,18,37,.42);opacity:.78}
+
 .app-header h1{font-size:1.45rem;letter-spacing:.01em;text-shadow:0 4px 16px rgba(22,119,255,.55)}
 .eyebrow,.step{color:var(--yellow)}
 .app-shell{position:relative}
@@ -63,7 +63,7 @@ button,input,select{font-size:16px}input[type="search"]{font-size:16px!important
 .battle-log{font-variant-numeric:tabular-nums}.battle-log li{padding:7px 9px;border-left:3px solid rgba(85,183,255,.35);background:rgba(5,17,35,.38);border-radius:0 10px 10px 0}
 .data-rank{display:flex;flex-direction:column;line-height:1}.data-rank small{font-size:.52rem;color:var(--muted);margin-top:3px}
 .type-normal{border-color:#a8a77a}.type-fire{border-color:#ee8130}.type-water{border-color:#6390f0}.type-electric{border-color:#f7d02c}.type-grass{border-color:#7ac74c}.type-ice{border-color:#96d9d6}.type-fighting{border-color:#c22e28}.type-poison{border-color:#a33ea1}.type-ground{border-color:#e2bf65}.type-flying{border-color:#a98ff3}.type-psychic{border-color:#f95587}.type-bug{border-color:#a6b91a}.type-rock{border-color:#b6a136}.type-ghost{border-color:#735797}.type-dragon{border-color:#6f35fc}.type-dark{border-color:#705746}.type-steel{border-color:#b7b7ce}.type-fairy{border-color:#d685ad}
-@media(max-width:560px){.app-header:after{right:88px;width:46px;height:46px}.app-shell{padding:10px}.tabs{margin-left:-2px;margin-right:-2px}.coverage-row{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);}.coverage-row em{grid-column:1/-1;justify-self:end}.pokemon-dialog{width:calc(100% - 10px);max-height:94dvh;padding:12px}.dialog-head{top:-12px}.recommendation-panel{padding:10px}}
+@media(max-width:560px){.app-shell{padding:10px}.tabs{margin-left:-2px;margin-right:-2px}.coverage-row{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);}.coverage-row em{grid-column:1/-1;justify-self:end}.pokemon-dialog{width:calc(100% - 10px);max-height:94dvh;padding:12px}.dialog-head{top:-12px}.recommendation-panel{padding:10px}}
 
 /* v0.5 final verification refinements */
 .coverage-row em small{display:block;margin-top:2px;font-size:.54rem;font-weight:700;opacity:.82}.coverage-row em{min-width:94px;text-align:center}.pokemon-rank{min-width:38px}.pokemon-dialog input,.pokemon-dialog select{font-size:16px!important}@supports (-webkit-touch-callout:none){input,select,textarea{font-size:16px!important}}
