@@ -292,3 +292,23 @@ button,input,select{font-size:16px}input[type="search"]{font-size:16px!important
 .selection-draw-note{margin:6px 0 10px;color:var(--muted);font-size:.62rem;line-height:1.45}
 
 .prediction-concentration{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}.prediction-concentration span{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:58px;padding:8px;border:1px solid var(--line,#d7dfeb);border-radius:12px;background:rgba(255,255,255,.68);font-size:.82rem;text-align:center}.prediction-concentration b{font-size:.72rem;opacity:.72;margin-bottom:2px}@media(max-width:520px){.prediction-concentration{grid-template-columns:1fr}.prediction-concentration span{min-height:46px;flex-direction:row;gap:8px}}
+
+/* v0.12 — 45-condition robust matchup view */
+.robust-matchup{grid-template-columns:minmax(0,1fr) auto}
+.scenario-details{grid-column:1/-1;margin-top:2px}
+.scenario-details summary{cursor:pointer;font-size:.66rem;color:#bfdbfe;padding:5px 0}
+.scenario-details>p{margin:7px 0 0;color:var(--muted);font-size:.62rem;line-height:1.45}
+.scenario-bars{display:grid;gap:7px;padding:9px;border:1px solid rgba(85,183,255,.14);border-radius:12px;background:rgba(3,12,26,.55)}
+.scenario-bar-row{display:grid;grid-template-columns:minmax(82px,1fr) minmax(90px,1.5fr) 38px;align-items:center;gap:7px}
+.scenario-bar-label{display:flex;align-items:baseline;justify-content:space-between;gap:5px;min-width:0}
+.scenario-bar-label strong{font-size:.65rem;white-space:nowrap}
+.scenario-bar-label span{font-size:.56rem;color:var(--muted)}
+.scenario-bar-track{height:9px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden}
+.scenario-bar-track i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#38d67a,#55b7ff)}
+.scenario-bar-row em{font-size:.61rem;font-style:normal;text-align:right;color:#dbeafe}
+.scenario-strip{display:flex;gap:3px;margin-top:3px}
+.scenario-strip i{display:block;width:10px;height:5px;border-radius:999px;background:#64748b}
+.scenario-strip i.is-good{background:#38d67a}.scenario-strip i.is-even{background:#ffd24a}.scenario-strip i.is-bad{background:#ff4f64}
+.robust-answer-card .answer-score{display:grid;justify-items:end;gap:2px}
+.robust-answer-card .scenario-strip{justify-content:flex-end}
+@media(max-width:560px){.scenario-bar-row{grid-template-columns:minmax(74px,1fr) minmax(76px,1.25fr) 34px}.scenario-bar-label strong{font-size:.61rem}}

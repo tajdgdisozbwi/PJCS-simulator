@@ -1,10 +1,10 @@
 {
-  "name": "PJCS Training Lab v0.11.4",
+  "name": "PJCS Training Lab v0.12",
   "short_name": "PJCS Lab",
-  "start_url": "./index.html?v=11-4",
+  "start_url": "./index.html?v=12",
   "display": "standalone",
   "background_color": "#071225",
   "theme_color": "#0d1b34",
   "lang": "ja",
-  "description": "321体内蔵・最新メタ自動構築・6体パーティ100点評価・3体選出100点評価・役割と弱点補完の根拠表示・9シールド条件対応のPokémon GO SL/PJCS向けPWA"
+  "description": "321体内蔵・最新メタ自動構築・6体パーティ100点評価・3体選出100点評価・役割と弱点補完の根拠表示・45実戦条件対応のPokémon GO SL/PJCS向けPWA"
 }
