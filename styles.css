@@ -279,3 +279,14 @@ button,input,select{font-size:16px}input[type="search"]{font-size:16px!important
 .predicted-mon{display:grid;justify-items:center;gap:1px}.predicted-mon small{font-size:.48rem;color:var(--muted)}
 .opponent-prediction p{margin:7px 0 0;color:var(--muted);font-size:.6rem;line-height:1.45}
 @media(max-width:560px){.avatar-option{width:34px;height:34px}.avatar-pick{width:36px;height:36px}.complement-direction{grid-template-columns:auto 26px auto auto 26px minmax(0,1fr);}.multiplier-note{grid-column:6}.prediction-title{align-items:start;flex-direction:column}.prediction-title small{text-align:left}}
+
+/* v0.11.2 — rank bounds, unified opponent draw, and clear log sides */
+.battle-log-mon{display:inline-flex;align-items:center;gap:3px;vertical-align:middle;margin:0 2px;padding:1px 4px 1px 2px;border:1px solid var(--border);border-radius:999px;background:rgba(15,23,42,.78)}
+.battle-log-mon .log-side-label{font-size:.52rem;font-weight:900;line-height:1;white-space:nowrap}
+.battle-log-mon.side-player{border-color:rgba(96,165,250,.6);background:rgba(37,99,235,.14)}
+.battle-log-mon.side-player .log-side-label{color:#93c5fd}
+.battle-log-mon.side-opponent{border-color:rgba(248,113,113,.6);background:rgba(220,38,38,.12)}
+.battle-log-mon.side-opponent .log-side-label{color:#fca5a5}
+.battle-log-mon.side-unknown .log-side-label{color:var(--muted)}
+.battle-log-mon .avatar-log{width:26px!important;height:26px!important}
+.selection-draw-note{margin:6px 0 10px;color:var(--muted);font-size:.62rem;line-height:1.45}
