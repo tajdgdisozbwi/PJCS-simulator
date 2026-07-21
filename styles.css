@@ -313,7 +313,7 @@ button,input,select{font-size:16px}input[type="search"]{font-size:16px!important
 .robust-answer-card .scenario-strip{justify-content:flex-end}
 @media(max-width:560px){.scenario-bar-row{grid-template-columns:minmax(74px,1fr) minmax(76px,1.25fr) 34px}.scenario-bar-label strong{font-size:.61rem}}
 
-/* v0.12.1 perspective-consistent matchup cards */
+/* v0.12.2 perspective-consistent and outcome-aware matchup cards */
 .matchup-bridge{display:inline-grid;grid-template-columns:minmax(8px,1fr) auto minmax(8px,1fr);align-items:center;gap:4px;min-width:62px;color:#f8d66d}
 .matchup-bridge i{display:block;height:1px;background:linear-gradient(90deg,transparent,rgba(248,214,109,.78))}
 .matchup-bridge i:last-child{background:linear-gradient(90deg,rgba(248,214,109,.78),transparent)}
@@ -328,3 +328,14 @@ button,input,select{font-size:16px}input[type="search"]{font-size:16px!important
 .score-explain-grid.score-explain-single>section{width:100%}
 .sprite-member>.matchup-bridge{min-width:52px}
 @media(max-width:420px){.perspective-answer-flow,.perspective-duel{gap:3px}.matchup-bridge{min-width:46px}.matchup-bridge strong{font-size:.48rem;padding:2px 4px}.answer-card{grid-template-columns:minmax(0,1fr) auto}}
+
+/* v0.12.2 dynamic matchup relation labels */
+.matchup-bridge{--bridge-color:#f8d66d;color:var(--bridge-color)}
+.matchup-bridge i{background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--bridge-color) 78%,transparent))}
+.matchup-bridge i:last-child{background:linear-gradient(90deg,color-mix(in srgb,var(--bridge-color) 78%,transparent),transparent)}
+.matchup-bridge strong{border-color:color-mix(in srgb,var(--bridge-color) 32%,transparent);background:color-mix(in srgb,var(--bridge-color) 10%,transparent);color:var(--bridge-color)}
+.matchup-bridge.bridge-great{--bridge-color:#62e69a}
+.matchup-bridge.bridge-good{--bridge-color:#9fe8bf}
+.matchup-bridge.bridge-even{--bridge-color:#f8d66d}
+.matchup-bridge.bridge-bad{--bridge-color:#ffad6b}
+.matchup-bridge.bridge-danger{--bridge-color:#ff7383}

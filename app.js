@@ -1045,10 +1045,11 @@ function headToHeadBySlots(playerIndex,opponentIndex){
 function duelIsStrong(duel){return duel.score100>=62&&(duel.categories?.standard?.rate||0)>=.55}
 function duelIsHard(duel){return duel.score100<=38&&(duel.categories?.standard?.rate||0)<=.45}
 function matchupGrade(duel){
-  if(duel.score100>=75)return {label:"安定有利",cls:"great"};
-  if(duelIsStrong(duel))return {label:"有利",cls:"good"};
-  if(duel.score100>=45)return {label:"五分付近",cls:"bad"};
-  if(duel.score100>=30)return {label:"不利",cls:"bad"};
+  const score=Number(duel?.score100)||0;
+  if(score>=75)return {label:"安定有利",cls:"great"};
+  if(score>=62)return {label:"有利",cls:"good"};
+  if(score>=45)return {label:"五分",cls:"even"};
+  if(score>=30)return {label:"不利",cls:"bad"};
   return {label:"安定不利",cls:"danger"};
 }
 function robustRecordText(duel){return `${duel.score100}/100・${duel.wins}/${duel.total}勝・安定度${duel.stability}`}
@@ -1708,13 +1709,17 @@ function scenarioBarsVisual(duel){
 function compactScenarioStrip(duel){
   return `<span class="scenario-strip">${ROBUST_DUEL_CATEGORIES.map(meta=>{const rate=duel.categories?.[meta.id]?.rate||0;const cls=rate>=.62?'is-good':rate<=.38?'is-bad':'is-even';return `<i class="${cls}" title="${escapeHtml(meta.label)} ${Math.round(rate*100)}%"></i>`}).join('')}</span>`;
 }
-function perspectiveBridge(label="優勢"){
-  return `<span class="matchup-bridge" aria-hidden="true"><i></i><strong>${escapeHtml(label)}</strong><i></i></span>`;
+function perspectiveBridge(duel){
+  const grade=matchupGrade(duel);
+  return `<span class="matchup-bridge bridge-${escapeHtml(grade.cls)}" aria-label="左側から見て${escapeHtml(grade.label)}"><i></i><strong>${escapeHtml(grade.label)}</strong><i></i></span>`;
+}
+function relationBridge(label,cls="even"){
+  return `<span class="matchup-bridge bridge-${escapeHtml(cls)}" aria-label="${escapeHtml(label)}"><i></i><strong>${escapeHtml(label)}</strong><i></i></span>`;
 }
 function matchupVisual(attacker,defender,duel,reasons,perspective="opponent"){
   const grade=matchupGrade(duel),actorLabel=perspective==="opponent"?"相手AI":"あなた",targetLabel=perspective==="opponent"?"あなた":"相手AI";
   return `<article class="matchup-visual compact-matchup robust-matchup">
-    <div class="duel-actors perspective-duel"><div><span>${actorLabel}</span>${spriteToken(attacker,"option")}</div>${perspectiveBridge("優勢")}<div><span>${targetLabel}</span>${spriteToken(defender,"option")}</div></div>
+    <div class="duel-actors perspective-duel"><div><span>${actorLabel}</span>${spriteToken(attacker,"option")}</div>${perspectiveBridge(duel)}<div><span>${targetLabel}</span>${spriteToken(defender,"option")}</div></div>
     <div class="matchup-score"><strong>${duel.score100}/100</strong><span>${grade.label}</span>${compactScenarioStrip(duel)}</div>
     <div class="reason-chips">${(reasons||[]).slice(0,4).map(x=>`<span>${escapeHtml(x)}</span>`).join('')}</div>
     <details class="scenario-details"><summary>45条件の内訳を見る</summary>${scenarioBarsVisual(duel)}<p>標準対面だけでなく、判断傾向・エネルギー差・HP差・交代後を含めた評価です。</p></details>
@@ -1723,7 +1728,7 @@ function matchupVisual(attacker,defender,duel,reasons,perspective="opponent"){
 function answerCard(aiMon,playerMon,duel){
   const grade=matchupGrade(duel);
   return `<article class="answer-card robust-answer-card ai-perspective-card">
-    <div class="answer-flow perspective-answer-flow"><div class="answer-side ai-side"><span>相手AI</span>${spriteToken(aiMon,"option")}</div>${perspectiveBridge("優勢")}<div class="answer-side player-side"><span>あなた</span>${spriteToken(playerMon,"option")}</div></div>
+    <div class="answer-flow perspective-answer-flow"><div class="answer-side ai-side"><span>相手AI</span>${spriteToken(aiMon,"option")}</div>${perspectiveBridge(duel)}<div class="answer-side player-side"><span>あなた</span>${spriteToken(playerMon,"option")}</div></div>
     <div class="answer-score"><strong>${duel.score100}/100</strong><span>${grade.label}</span>${compactScenarioStrip(duel)}</div>
   </article>`;
 }
@@ -1743,7 +1748,7 @@ function opponentAnalysisHtml(meta,compact=false){
 }
 function recommendationAnswerCard(row){
   const player=effectivePokemon('player',row.playerIndex),opponent=effectivePokemon('opponent',row.opponentIndex),grade=matchupGrade(row.duel);
-  return `<article class="answer-card player-answer robust-answer-card player-perspective-card"><div class="answer-flow perspective-answer-flow"><div class="answer-side player-side"><span>あなた</span>${spriteToken(player,'option')}</div>${perspectiveBridge("優勢")}<div class="answer-side ai-side"><span>相手AI</span>${spriteToken(opponent,'option')}</div></div><div class="answer-score"><strong>${row.duel.score100}/100</strong><span>${grade.label}</span>${compactScenarioStrip(row.duel)}</div></article>`;
+  return `<article class="answer-card player-answer robust-answer-card player-perspective-card"><div class="answer-flow perspective-answer-flow"><div class="answer-side player-side"><span>あなた</span>${spriteToken(player,'option')}</div>${perspectiveBridge(duel)}<div class="answer-side ai-side"><span>相手AI</span>${spriteToken(opponent,'option')}</div></div><div class="answer-score"><strong>${row.duel.score100}/100</strong><span>${grade.label}</span>${compactScenarioStrip(row.duel)}</div></article>`;
 }
 
 function distinctOpponentRoleAssignment(team){
@@ -1904,7 +1909,7 @@ function renderRecommendations(results,currentEstimate=null){
     const memberCards=analysis.memberCoverage.map(member=>{
       const mon=effectivePokemon('player',member.playerIndex);
       const targets=member.strong.slice(0,3).map(x=>{const oi=state.opponentRoster.findIndex(id=>POKEMON[id].name===x.opponent);return `<span class="target-chip">${spriteToken(effectivePokemon('opponent',oi),'option')}<em>${x.duel.score100}/100</em></span>`}).join('');
-      return `<div class="member-visual sprite-member">${spriteToken(mon,'pick')}${perspectiveBridge("有利")}<div class="target-chip-list">${targets||'<span class="muted">明確な有利対面なし</span>'}</div></div>`;
+      return `<div class="member-visual sprite-member">${spriteToken(mon,'pick')}${relationBridge("刺さる","good")}<div class="target-chip-list">${targets||'<span class="muted">明確な有利対面なし</span>'}</div></div>`;
     }).join('');
     const heavy=analysis.heavy.slice(0,4).map(x=>`<div class="heavy-chip">${spriteToken(effectivePokemon('opponent',x.opponentIndex),'option')}<span>最善でも${x.duel.score100}/100</span></div>`).join('')||'<span class="good-note">相手6体すべてに回答あり</span>';
     const warnings=[
