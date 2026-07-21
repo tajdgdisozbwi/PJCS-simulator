@@ -312,3 +312,19 @@ button,input,select{font-size:16px}input[type="search"]{font-size:16px!important
 .robust-answer-card .answer-score{display:grid;justify-items:end;gap:2px}
 .robust-answer-card .scenario-strip{justify-content:flex-end}
 @media(max-width:560px){.scenario-bar-row{grid-template-columns:minmax(74px,1fr) minmax(76px,1.25fr) 34px}.scenario-bar-label strong{font-size:.61rem}}
+
+/* v0.12.1 perspective-consistent matchup cards */
+.matchup-bridge{display:inline-grid;grid-template-columns:minmax(8px,1fr) auto minmax(8px,1fr);align-items:center;gap:4px;min-width:62px;color:#f8d66d}
+.matchup-bridge i{display:block;height:1px;background:linear-gradient(90deg,transparent,rgba(248,214,109,.78))}
+.matchup-bridge i:last-child{background:linear-gradient(90deg,rgba(248,214,109,.78),transparent)}
+.matchup-bridge strong{padding:2px 6px;border:1px solid rgba(248,214,109,.28);border-radius:999px;background:rgba(248,214,109,.08);font-size:.52rem;letter-spacing:.06em;white-space:nowrap}
+.perspective-answer-flow,.perspective-duel{display:grid!important;grid-template-columns:minmax(48px,1fr) auto minmax(48px,1fr);align-items:center;gap:6px}
+.perspective-answer-flow>div,.perspective-duel>div{display:grid;justify-items:center;gap:2px;min-width:0}
+.perspective-answer-flow .answer-side>span,.perspective-duel>div>span{font-size:.56rem;color:var(--muted);white-space:nowrap}
+.ai-perspective-card{border-color:rgba(248,113,113,.18)}
+.player-perspective-card{border-color:rgba(96,165,250,.2)}
+.answer-flow .matchup-bridge{min-width:54px}
+.score-explain-grid.score-explain-single{grid-template-columns:1fr}
+.score-explain-grid.score-explain-single>section{width:100%}
+.sprite-member>.matchup-bridge{min-width:52px}
+@media(max-width:420px){.perspective-answer-flow,.perspective-duel{gap:3px}.matchup-bridge{min-width:46px}.matchup-bridge strong{font-size:.48rem;padding:2px 4px}.answer-card{grid-template-columns:minmax(0,1fr) auto}}

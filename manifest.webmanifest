@@ -1,5 +1,5 @@
 {
-  "name": "PJCS Training Lab v0.12",
+  "name": "PJCS Training Lab v0.12.1",
   "short_name": "PJCS Lab",
   "start_url": "./index.html?v=12",
   "display": "standalone",
