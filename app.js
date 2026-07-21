@@ -1,6 +1,6 @@
 "use strict";
 
-const STORAGE_KEY = "pjcs-simulator-v013";
+const STORAGE_KEY = "pjcs-simulator-v0131";
 const OLD_STORAGE_KEYS = [];
 const TURN_MS = 500;
 const SWITCH_COOLDOWN_TURNS = 90;
@@ -389,9 +389,28 @@ function chargedCmpStat(mon){
   if(blade&&(mon.battleForm==="shield"||!mon.battleForm))return blade.atk*stageMult(mon.attackStage||0)*(mon.shadow?SHADOW_ATTACK:1);
   return attackStat(mon);
 }
-function calcDamageWithAttack(attacker,defender,move,attackValue){if(!attacker||!defender||!move)return 1;const stab=attacker.types.includes(move.type)?STAB:1;const eff=effectiveness(move.type,defender.types);return Math.max(1,Math.floor(.5*move.power*(attackValue/Math.max(1,defenseStat(defender)))*stab*eff*1.2999999523)+1)}
+function damageBreakdownWithAttack(attacker,defender,move,attackValue){
+  if(!attacker||!defender||!move)return {damage:1,attackValue:0,defenseValue:1,stab:1,effectiveness:1,raw:0};
+  const defenseValue=Math.max(1,defenseStat(defender));
+  const stab=attacker.types.includes(move.type)?STAB:1;
+  const eff=effectiveness(move.type,defender.types);
+  const raw=.5*safeNumber(move.power,0)*(attackValue/defenseValue)*stab*eff*1.2999999523;
+  return {damage:Math.max(1,Math.floor(raw)+1),attackValue,defenseValue,stab,effectiveness:eff,raw};
+}
+function calcDamageWithAttack(attacker,defender,move,attackValue){return damageBreakdownWithAttack(attacker,defender,move,attackValue).damage}
 function calcDamage(attacker,defender,move){return calcDamageWithAttack(attacker,defender,move,attackStat(attacker))}
 function projectedChargedDamage(attacker,defender,move){return calcDamageWithAttack(attacker,defender,move,chargedCmpStat(attacker))}
+function damageDetail(attacker,defender,move,charged=false){
+  const attackValue=charged?chargedCmpStat(attacker):attackStat(attacker);
+  const d=damageBreakdownWithAttack(attacker,defender,move,attackValue);
+  const modifiers=[`攻撃${d.attackValue.toFixed(1)}`,`防御${d.defenseValue.toFixed(1)}`,`相性×${Number(d.effectiveness.toFixed(3))}`];
+  if(d.stab!==1)modifiers.push(`タイプ一致×${d.stab.toFixed(1)}`);
+  if(attacker.shadow)modifiers.push('シャドウ攻撃補正込み');
+  if(defender.shadow)modifiers.push('シャドウ防御補正込み');
+  if((attacker.attackStage||0)!==0)modifiers.push(`攻撃${attacker.attackStage>0?'+':''}${attacker.attackStage}段階`);
+  if((defender.defenseStage||0)!==0)modifiers.push(`防御${defender.defenseStage>0?'+':''}${defender.defenseStage}段階`);
+  return modifiers.join('・');
+}
 function fastDamage(attacker,defender,move){return isAegislash(attacker)&&attacker.battleForm==="shield"?1:calcDamage(attacker,defender,move)}
 function fastEnergy(attacker,move){return isAegislash(attacker)&&attacker.battleForm==="shield"?6:safeNumber(move?.energy,0)}
 function setAegislashForm(mon,form,log=null,turn=0,reason=""){
@@ -445,7 +464,7 @@ function turnsToCheapestCharged(mon){const move=cheapestCharged(mon);return move
 function projectedThreat(attacker,defender,energy=attacker.energy){
   const moves=availableChargedAt(attacker,energy);
   if(!moves.length)return {moves:[],maxDamage:0,minDamage:0,avgDamage:0,maxMove:null,cheapMove:null};
-  const rows=moves.map(move=>({move,damage:calcDamage(attacker,defender,move)})).sort((a,b)=>b.damage-a.damage);
+  const rows=moves.map(move=>({move,damage:projectedChargedDamage(attacker,defender,move)})).sort((a,b)=>b.damage-a.damage);
   return {moves:rows,maxDamage:rows[0].damage,minDamage:Math.min(...rows.map(x=>x.damage)),avgDamage:rows.reduce((a,x)=>a+x.damage,0)/rows.length,maxMove:rows[0].move,cheapMove:[...rows].sort((a,b)=>a.move.energy-b.move.energy)[0].move};
 }
 function bestCharged(mon,opp,preferCheap=false){
@@ -496,21 +515,37 @@ function catchCandidate(team,other,rng,style){
   if(best&&best.score>-.04&&rng()<chance)return best;
   return null;
 }
+function baitOpportunity(mon,opp,cheap,nuke){
+  if(!cheap||!nuke||cheap===nuke)return null;
+  const cheapDamage=projectedChargedDamage(mon,opp,cheap),nukeDamage=projectedChargedDamage(mon,opp,nuke);
+  const costGap=safeNumber(nuke.energy)-safeNumber(cheap.energy),damageGap=nukeDamage-cheapDamage;
+  const currentHp=Math.max(1,opp.currentHp),maxHp=Math.max(1,opp.maxHp);
+  const nukeIsRealThreat=nukeDamage>=currentHp||nukeDamage>=Math.max(maxHp*.38,currentHp*.48);
+  const damageGapMeaningful=damageGap>=Math.max(12,maxHp*.16)&&nukeDamage>=cheapDamage*1.28;
+  const energyGapMeaningful=costGap>=10;
+  const cheapIsNotLethal=cheapDamage<currentHp;
+  const valid=energyGapMeaningful&&damageGapMeaningful&&nukeIsRealThreat&&cheapIsNotLethal;
+  return {valid,cheapDamage,nukeDamage,costGap,damageGap,nukeIsRealThreat,damageGapMeaningful,energyGapMeaningful};
+}
 function chargedDecision(team,other,rng,style){
   const mon=active(team),opp=active(other),available=availableChargedAt(mon);if(!available.length)return null;
-  const cheap=[...available].sort((a,b)=>a.energy-b.energy)[0],nuke=[...available].sort((a,b)=>projectedChargedDamage(mon,opp,b)-projectedChargedDamage(mon,opp,a))[0];
-  const nukeDamage=projectedChargedDamage(mon,opp,nuke),cheapDamage=projectedChargedDamage(mon,opp,cheap),lethal=nukeDamage>=opp.currentHp;
+  const cheap=[...available].sort((a,b)=>a.energy-b.energy||projectedChargedDamage(mon,opp,b)-projectedChargedDamage(mon,opp,a))[0];
+  const nuke=[...available].sort((a,b)=>projectedChargedDamage(mon,opp,b)-projectedChargedDamage(mon,opp,a)||b.energy-a.energy)[0];
+  const nukeDamage=projectedChargedDamage(mon,opp,nuke),lethal=nukeDamage>=opp.currentHp;
   const timingGood=!opp.fastPending||opp.fastPending.remaining<=1;
   const oppTurns=turnsToCheapestCharged(opp),ownFast=fastObject(mon);
   const canOverfarm=mon.energy<=100-Math.max(1,fastEnergy(mon,ownFast))&&oppTurns>ownFast.turns+1&&nukeDamage<opp.currentHp&&hpRatio(mon)>.24;
   if(!lethal&&mon.energy<92&&!timingGood&&style==="championship"&&rng()<.78)return {type:"fast",move:ownFast,reason:"timing"};
   if(!lethal&&canOverfarm&&style==="championship"&&rng()<.58)return {type:"fast",move:ownFast,reason:"overfarm"};
-  if(other.shields>0&&cheap&&nuke&&cheap!==nuke&&mon.energy>=nuke.energy){
-    const credibility=nukeDamage/Math.max(1,opp.maxHp),costGap=nuke.energy-cheap.energy;
-    const baitBase=style==="championship"?.58:style==="aggressive"?.45:style==="conservative"?.25:.35;
-    const baitChance=clamp(baitBase+(credibility-.35)*.35+(costGap>=15?.10:0)-(cheapDamage>=opp.currentHp?.45:0),.08,.82);
-    if(credibility>=.30&&rng()<baitChance)return {type:"charged",move:cheap,reason:"bait",threatMove:nuke};
+  const bait=baitOpportunity(mon,opp,cheap,nuke);
+  if(other.shields>0&&bait?.valid&&mon.energy>=nuke.energy){
+    const urgency=Math.max(bait.nukeDamage/Math.max(1,opp.currentHp),bait.nukeDamage/Math.max(1,opp.maxHp));
+    const baitBase=style==="championship"?.48:style==="aggressive"?.36:style==="conservative"?.18:.28;
+    const baitChance=clamp(baitBase+(urgency-.45)*.30+(bait.costGap>=15?.08:0),.06,.68);
+    if(rng()<baitChance)return {type:"charged",move:cheap,reason:"bait",threatMove:nuke,baitInfo:bait};
   }
+  const utility=[...available].filter(move=>(move.effects||[]).some(effect=>effect.target==="opponent"&&safeNumber(effect.delta)<0)).sort((a,b)=>a.energy-b.energy)[0];
+  if(utility&&utility!==nuke&&!lethal&&style==="championship"&&rng()<.24)return {type:"charged",move:utility,reason:"utility"};
   const throwChance=style==="championship"?.90:style==="aggressive"?.95:style==="conservative"?.72:.84;
   if(lethal||mon.energy>=92||rng()<throwChance)return {type:"charged",move:bestCharged(mon,opp,false),reason:lethal?"lethal":"pressure"};
   return null;
@@ -529,25 +564,26 @@ function chooseAction(team,other,rng,style){
   if(team.switchCooldown===0&&candidate.index>=0&&currentScore<.12&&candidate.score>currentScore+.42&&rng()<(style==="championship"?.42:.18))return {type:"switch",index:candidate.index,reason:"cycle"};
   return {type:"fast",move:fastObject(mon),reason:"farm"};
 }
-function shieldDecision(team,attacker,actualMove,energyBefore,rng,style){
-  if(team.shields<=0)return {use:false,reason:"no-shields"};
+function shieldDecision(team,attacker,energyBefore,rng,style){
+  if(team.shields<=0)return {use:false,reason:"no-shields",plausible:[]};
   const defender=active(team),plausible=availableChargedAt(attacker,energyBefore);
-  if(!plausible.length)return {use:false,reason:"no-threat"};
-  const rows=plausible.map(move=>({move,damage:calcDamage(attacker,defender,move)})).sort((a,b)=>b.damage-a.damage);
-  const worst=rows[0].damage,best=rows.at(-1).damage,actual=calcDamage(attacker,defender,actualMove),lastMon=alive(team).length===1;
+  if(!plausible.length)return {use:false,reason:"no-threat",plausible:[]};
+  const rows=plausible.map(move=>({move,damage:projectedChargedDamage(attacker,defender,move)})).sort((a,b)=>b.damage-a.damage);
+  const worst=rows[0].damage,best=rows.at(-1).damage,lastMon=alive(team).length===1;
   const canSurviveWorst=worst<defender.currentHp,lowValue=hpRatio(defender)<.22&&defender.energy<Math.max(15,(cheapestCharged(defender)?.energy||35)*.55);
   const benchAnswer=bestSwitch(team,attacker,null),benchExists=benchAnswer.index>=0;
   const storedThreat=defender.energy>=(cheapestCharged(defender)?.energy||999);
-  if(lowValue&&benchExists&&!lastMon)return {use:false,reason:"sacrifice"};
-  if(worst>=defender.currentHp&&(lastMon||storedThreat||hpRatio(defender)>.35))return {use:true,reason:"lethal-risk"};
-  if(best>=defender.currentHp)return {use:true,reason:"all-lethal"};
-  const worstRatio=worst/Math.max(1,defender.maxHp),actualRatio=actual/Math.max(1,defender.maxHp),shieldValue=(team.shields/alive(team).length);
+  const base={worst,best,plausible:rows,maxMove:rows[0].move,minMove:rows.at(-1).move};
+  if(lowValue&&benchExists&&!lastMon)return {...base,use:false,reason:"sacrifice"};
+  if(worst>=defender.currentHp&&(lastMon||storedThreat||hpRatio(defender)>.35))return {...base,use:true,reason:"lethal-risk"};
+  if(best>=defender.currentHp)return {...base,use:true,reason:"all-lethal"};
+  const worstRatio=worst/Math.max(1,defender.maxHp),shieldValue=(team.shields/alive(team).length);
   let probability=style==="championship"?.50:style==="conservative"?.72:style==="aggressive"?.38:.56;
   probability+=clamp((worstRatio-.32)*.9,-.18,.35)+(storedThreat?.12:0)+(lastMon?.18:0)-(shieldValue<.45?.10:0);
   if(rows.length>1)probability-=style==="championship"?.08:.04;
   if(canSurviveWorst&&worstRatio<.40)probability-=.22;
   const use=rng()<clamp(probability,.05,.95);
-  return {use,reason:use?"threat-respect":"hold",worst,actual,plausible:rows.length};
+  return {...base,use,reason:use?"threat-respect":"hold"};
 }
 function applyEffects(user,target,move,rng,log,turn){
   for(const effect of move.effects||[]){
@@ -559,6 +595,7 @@ function applyEffects(user,target,move,rng,log,turn){
   }
 }
 function turnLabel(turn){return `${(turn*TURN_MS/1000).toFixed(1)}秒`}
+function battleStatLine(mon){return `${logMon(mon)} 攻撃${attackStat(mon).toFixed(1)}・防御${defenseStat(mon).toFixed(1)}・HP${Math.max(0,mon.currentHp)}/${mon.maxHp}・E${mon.energy}`;}
 function fastTiming(move){return `${move.turns}ターン / ${(move.turns*TURN_MS/1000).toFixed(1)}秒`}
 function logMon(mon){
   if(!mon?.id)return escapeHtml(mon?.name||"?");
@@ -575,7 +612,7 @@ function executeBattleSwitch(team,action,log,turn,label){
   if(action.reason==="catch")team.tactics.catchAttempts++;
   if(action.reason==="clear-debuff")team.tactics.debuffClears++;
   if(action.reason==="preserve")team.tactics.preserved++;
-  if(log)log.push(`${turnLabel(turn)} ${label}は${logMon(active(team))}へ交代${reasons[action.reason]?`（${reasons[action.reason]}）`:""}`);
+  if(log)log.push(`${turnLabel(turn)} ${label}は${logMon(active(team))}へ交代${reasons[action.reason]?`（${reasons[action.reason]}）`:""}／攻撃${attackStat(active(team)).toFixed(1)}・防御${defenseStat(active(team)).toFixed(1)}・HP${active(team).currentHp}/${active(team).maxHp}・E${active(team).energy}`);
   return true;
 }
 
@@ -593,6 +630,7 @@ function simulateBattle(playerRoster,playerPicks,opponentRoster,opponentPicks,se
   applyInitialBattleState(p,options.playerHpRatio,options.playerEnergy,options.playerAttackStage,options.playerDefenseStage);
   applyInitialBattleState(o,options.opponentHpRatio,options.opponentEnergy,options.opponentAttackStage,options.opponentDefenseStage);
   let turn=0;
+  if(verbose)log.push(`0.0秒 対戦開始：あなた ${battleStatLine(active(p))} ／ 相手 ${battleStatLine(active(o))}`);
   while(turn<MAX_TURNS){
     const pActor=active(p),oActor=active(o);
     const pa=pActor.fastPending?{type:"wait"}:chooseAction(p,o,rng,style);
@@ -617,22 +655,34 @@ function simulateBattle(playerRoster,playerPicks,opponentRoster,opponentPicks,se
         if(battleOver(p,o))break;
         const user=item.actor,target=active(item.other),move=item.action.move;
         if(active(item.team)!==user||!user||user.fainted||!move||user.energy<move.energy)continue;
-        const energyBefore=user.energy;user.energy-=move.energy;user.chargedMoveCount++;user.lastChargedMove=move.id||move.name;
+        const energyBefore=user.energy;user.energy-=move.energy;const energyAfter=user.energy;user.chargedMoveCount++;user.lastChargedMove=move.id||move.name;
         // Pokémon GO: Aegislash changes to Blade Forme immediately before its Charged Attack.
         if(isAegislash(user)&&user.battleForm==="shield")setAegislashForm(user,"blade",verbose?log:null,turn,"ゲージ技を使用");
-        const decision=shieldDecision(item.other,user,move,energyBefore,rng,style),shield=decision.use;
-        const dmg=shield?1:calcDamage(user,target,move);
+        // Fair-play rule: the defender decides before the actual move is passed to the shield AI.
+        const decision=shieldDecision(item.other,user,energyBefore,rng,style),shield=decision.use;
+        const actualDamage=calcDamage(user,target,move),dmg=shield?1:actualDamage;
+        const hpBefore=Math.max(0,target.currentHp);
         if(item.action.reason==="bait"){item.team.tactics.baits++;if(shield)item.team.tactics.baitSuccess++;}
-        if(shield){item.other.shields-=1;item.other.tactics.shieldsUsed++;}else if(decision.reason==="hold"&&move.energy===Math.min(...availableChargedAt(user,energyBefore).map(x=>x.energy))){item.other.tactics.noShieldReads++;}
-        target.currentHp-=dmg;
+        if(shield){item.other.shields-=1;item.other.tactics.shieldsUsed++;}
+        else if(item.action.reason==="bait")item.other.tactics.noShieldReads++;
+        target.currentHp-=dmg;const hpAfter=Math.max(0,target.currentHp);
         const opposingAction=item.team===p?oa:pa;
         if(opposingAction?.reason==="catch"&&opposingAction.executed){item.other.tactics.catches++;if(verbose)log.push(`${turnLabel(turn)} ${logMon(target)}がゲージ技をキャッチ`);}
-        if(verbose&&item.action.reason==="bait")log.push(`${turnLabel(turn)} ${logMon(user)}は高火力技を見せて${move.name}でブラフ${shield?"成功":"を読まれた"}`);
-        if(verbose&&!shield&&decision.reason==="hold"){
-          const cheapest=Math.min(...availableChargedAt(user,energyBefore).map(x=>x.energy));
-          log.push(`${turnLabel(turn)} ${logMon(target)}は${move.energy===cheapest?"ブラフを読んで":"高火力技も受ける判断で"}シールドを温存`);
+        if(verbose&&item.action.reason==="bait"){
+          const threat=item.action.threatMove,b=item.action.baitInfo||{};
+          log.push(`${turnLabel(turn)} ${logMon(user)}は${threat?.name||"高火力技"}（予測${b.nukeDamage??decision.worst??"?"}ダメージ・E${threat?.energy??"?"}）を警戒させ、${move.name}（予測${b.cheapDamage??actualDamage}ダメージ・E${move.energy}）でブラフ${shield?"成功":"不成立"}`);
+        }else if(verbose&&item.action.reason==="utility"){
+          log.push(`${turnLabel(turn)} ${logMon(user)}は能力低下効果を狙って${move.name}を選択`);
         }
-        if(verbose)log.push(`${turnLabel(turn)} ${logMon(user)}の${move.name} → ${logMon(target)} ${dmg}ダメージ${shield?"（シールド）":""}（ゲージ技・固有ターンなし）`);
+        if(verbose&&shield){
+          log.push(`${turnLabel(turn)} ${logMon(target)}はシールドを使用（残り${item.other.shields}枚／想定最大${decision.worst??actualDamage}ダメージ：${decision.maxMove?.name||move.name}）`);
+        }else if(verbose&&!shield){
+          if(decision.reason==="no-shields")log.push(`${turnLabel(turn)} ${logMon(target)}はシールド残り0枚のため受ける`);
+          else if(item.action.reason==="bait")log.push(`${turnLabel(turn)} ${logMon(target)}はブラフを見抜いてシールドを温存（残り${item.other.shields}枚）`);
+          else if(decision.reason==="sacrifice")log.push(`${turnLabel(turn)} ${logMon(target)}は低HPのためシールドを温存（残り${item.other.shields}枚）`);
+          else log.push(`${turnLabel(turn)} ${logMon(target)}は想定最大${decision.worst??actualDamage}ダメージを踏まえてシールドを温存（残り${item.other.shields}枚）`);
+        }
+        if(verbose)log.push(`${turnLabel(turn)} ${logMon(user)}の${move.name} → ${logMon(target)} ${dmg}ダメージ${shield?"（シールド）":""}（E ${energyBefore}→${energyAfter}、HP ${hpBefore}→${hpAfter}、${damageDetail(user,target,move,true)}）`);
         // Aegislash returns to Shield Forme after it uses a Protect Shield.
         if(shield&&isAegislash(target)&&target.battleForm==="blade")setAegislashForm(target,"shield",verbose?log:null,turn,"シールドを使用");
         applyEffects(user,target,move,rng,log,turn);processFaints(p,o,log,turn);
@@ -661,11 +711,12 @@ function simulateBattle(playerRoster,playerPicks,opponentRoster,opponentPicks,se
     const damages=fastHits.map(hit=>({...hit,damage:fastDamage(hit.attacker,hit.defender,hit.move),energyGain:fastEnergy(hit.attacker,hit.move)}));
     for(const hit of damages){
       if(!hit.attacker.fainted&&hit.defender){
+        const energyBefore=hit.attacker.energy,hpBefore=Math.max(0,hit.defender.currentHp);
         hit.attacker.energy=clamp(hit.attacker.energy+hit.energyGain,0,100);hit.attacker.fastMoveCount=(hit.attacker.fastMoveCount||0)+1;hit.defender.currentHp-=hit.damage;
-        const shieldCharge=isAegislash(hit.attacker)&&hit.attacker.battleForm==="shield";
+        const hpAfter=Math.max(0,hit.defender.currentHp),shieldCharge=isAegislash(hit.attacker)&&hit.attacker.battleForm==="shield";
         const fastLabel=shieldCharge?`チャージ（${hit.move.name}相当）`:hit.move.name;
         const stanceNote=shieldCharge?"・シールド仕様":"";
-        if(verbose)log.push(`${turnLabel(turn)} ${logMon(hit.attacker)}の${fastLabel} → ${hit.damage}ダメージ（${fastTiming(hit.move)}、E+${hit.energyGain}→${hit.attacker.energy}${stanceNote}）`);
+        if(verbose)log.push(`${turnLabel(turn)} ${logMon(hit.attacker)}の${fastLabel} → ${logMon(hit.defender)} ${hit.damage}ダメージ（${fastTiming(hit.move)}、E ${energyBefore}→${hit.attacker.energy}、HP ${hpBefore}→${hpAfter}、${damageDetail(hit.attacker,hit.defender,hit.move,false)}${stanceNote}）`);
       }
     }
     processFaints(p,o,log,turn);
@@ -1442,7 +1493,7 @@ function analyzeSelections(){
     const validated=candidates.map((line,index)=>({line,...simulateLineEstimate(line,opponentLines,seed+500000+index*20000,style,3),analysis:recommendationAnalysis(line)})).sort((a,b)=>b.winPct-a.winPct||b.avgAlive-a.avgAlive);
     const current=state.playerPicks.length===3?validated.find(x=>x.line.join(",")===state.playerPicks.join(","))?.winPct??estimateCurrentAcrossUnknown(seed,style):null;
     const top=validated.slice(0,3);
-    state.lastRecommendations={createdAt:Date.now(),version:13,results:top};saveState();renderRecommendations(top,current);
+    state.lastRecommendations={createdAt:Date.now(),version:13.1,results:top};saveState();renderRecommendations(top,current);
     button.disabled=false;button.textContent="✨ 勝てる選出を探す";
   },50);
 }
@@ -1524,7 +1575,7 @@ function resetAll(){if(!confirm("あなたの登録・個体値・技・選出�
 function switchTab(name){document.querySelectorAll(".tab").forEach(button=>button.classList.toggle("is-active",button.dataset.tab===name));document.querySelectorAll(".panel").forEach(panel=>panel.classList.toggle("is-active",panel.id===name));if(name==="selection")renderSelection();if(name==="battle")renderBattleLineups();if(name==="match")renderMatch();if(name==="data")renderDataLibrary(document.getElementById("dataSearch")?.value||"");window.scrollTo({top:0,behavior:"smooth"})}
 function startTimer(){clearInterval(timerId);timerValue=90;updateTimer();timerId=setInterval(()=>{timerValue--;updateTimer();if(timerValue<=0){clearInterval(timerId);timerId=null;document.getElementById("selectionMessage").textContent="選出時間が終了しました。"}},1000)}
 function updateTimer(){const el=document.getElementById("timer");el.textContent=timerValue;el.closest(".timer-box").classList.toggle("is-low",timerValue<=15)}
-function renderAll(){renderRosters();renderSelection();renderBattleLineups();renderMatch();renderDataLibrary(document.getElementById("dataSearch")?.value||"");updateTimer();updateRunBattleButton();if(state.lastRecommendations?.version===13&&state.lastRecommendations?.results?.length)renderRecommendations(state.lastRecommendations.results,null);else state.lastRecommendations=null}
+function renderAll(){renderRosters();renderSelection();renderBattleLineups();renderMatch();renderDataLibrary(document.getElementById("dataSearch")?.value||"");updateTimer();updateRunBattleButton();if(state.lastRecommendations?.version===13.1&&state.lastRecommendations?.results?.length)renderRecommendations(state.lastRecommendations.results,null);else state.lastRecommendations=null}
 
 function applyRecommendation(line){
   const parsed=String(line||"").split(",").map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<6);
@@ -1852,13 +1903,12 @@ function opponentAnalysisHtml(meta,compact=false){
     return `<section class="visual-role-section"><div class="visual-role-head sprite-role-head">${spriteToken(mon,"pick")}<span class="role-badge">${escapeHtml(member.role)}</span><div class="role-stats"><b>有利 ${member.metrics.favorable.length}</b><b>互角 ${member.metrics.neutral.length}</b><b>不利 ${member.metrics.hard.length}</b></div></div>${targets||'<p class="muted">明確な有利対面なし</p>'}</section>`;
   }).join('');
   const coverage=`<section class="visual-coverage answer-board-section"><div class="board-title"><h4>あなたの6体への最善回答</h4><small>AI視点：左＝相手AIの回答　右＝あなた</small></div><div class="answer-board">${a.coverage.map(row=>answerCard(effectivePokemon("opponent",row.bestOpponentIndex),effectivePokemon("player",row.playerIndex),row.duel)).join('')}</div></section>`;
-  const warningCards=a.heavy.length?`<div class="warning-cards sprite-warning-cards">${a.heavy.slice(0,3).map(row=>`<div class="warning-card explicit-warning"><span>相手AIの3体では</span>${spriteToken(effectivePokemon("player",row.playerIndex),"inline")}<strong>への明確な回答なし</strong></div>`).join('')}</div>`:"";
   const alternatives=meta.alternatives?.length?`<details class="ai-alternatives"><summary>次点の相手選出</summary>${meta.alternatives.map((alt,i)=>`<div class="alternative-line"><b>#${i+2}</b>${alt.line.map(index=>spriteToken(effectivePokemon("opponent",index),"option")).join('')}<em>予測${((alt.probability||0)*100).toFixed(1)}%・対戦評価${alt.winPct.toFixed(1)}%</em></div>`).join('')}</details>`:"";
-  return `${summary}${lineup}${compact?coverage:`${roles}${coverage}${warningCards}${alternatives}`}<p class="basis-note">公開されたあなたの6体だけを参照。現在選択中の3体は相手AIへ渡していません。</p>`;
+  return `${summary}${lineup}${compact?coverage:`${roles}${coverage}${alternatives}`}<p class="basis-note">公開されたあなたの6体だけを参照。現在選択中の3体は相手AIへ渡していません。</p>`;
 }
 function recommendationAnswerCard(row){
   const player=effectivePokemon('player',row.playerIndex),opponent=effectivePokemon('opponent',row.opponentIndex),grade=matchupGrade(row.duel);
-  return `<article class="answer-card player-answer robust-answer-card player-perspective-card"><div class="answer-flow perspective-answer-flow"><div class="answer-side player-side"><span>あなた</span>${spriteToken(player,'option')}</div>${perspectiveBridge(duel)}<div class="answer-side ai-side"><span>相手AI</span>${spriteToken(opponent,'option')}</div></div><div class="answer-score"><strong>${row.duel.score100}/100</strong><span>${grade.label}</span>${compactScenarioStrip(row.duel)}</div></article>`;
+  return `<article class="answer-card player-answer robust-answer-card player-perspective-card"><div class="answer-flow perspective-answer-flow"><div class="answer-side player-side"><span>あなた</span>${spriteToken(player,'option')}</div>${perspectiveBridge(row.duel)}<div class="answer-side ai-side"><span>相手AI</span>${spriteToken(opponent,'option')}</div></div><div class="answer-score"><strong>${row.duel.score100}/100</strong><span>${grade.label}</span>${compactScenarioStrip(row.duel)}</div></article>`;
 }
 
 function distinctOpponentRoleAssignment(team){
@@ -2102,9 +2152,9 @@ function renderDataLibrary(query=""){
   document.getElementById("dataMetrics").innerHTML=`<div class="metric"><strong>${DATA_INFO.count}</strong><span>収録ポケモン</span></div><div class="metric"><strong>${DATA_INFO.liveMovesetCount||0}</strong><span>最新推奨技を照合</span></div><div class="metric"><strong>${opponentCandidatePool().length}</strong><span>相手AI候補</span></div>`;
   const ids=META_ORDER.filter(id=>{const p=POKEMON[id],hay=[p.name,p.englishName,...p.types.map(typeName),...p.types,FAST_MOVES[p.fast]?.name,...p.charged.map(x=>CHARGED_MOVES[x]?.name)].join(" ").toLowerCase();return !q||hay.includes(q)}).slice(0,q?DATA_INFO.count:140);
   document.getElementById("dataList").replaceChildren(...ids.map(id=>{const p=POKEMON[id],b=p.rank1,row=document.createElement("article");row.className="data-row";row.innerHTML=`<span class="data-rank">${p.rank?`#${p.rank}<small>性能順位</small>`:`—<small>未照合</small>`}</span>${pokemonAvatar(p,"data")}<div class="data-main"><strong>${escapeHtml(p.name)} ${p.movesetSource?'<span class="meta-inline">技照合済み</span>':''}</strong><small>${typeChips(p.types)} ${escapeHtml(moveLabel(p))}</small></div><div class="data-build">CP ${b.cp}<br>Lv ${b.level}</div>`;return row}));
-  document.getElementById("dataDiagnostics").innerHTML=`<p><strong>技構成:</strong> ${DATA_INFO.liveMeta?'起動時に現行PvPokeランキングJSONを取得し、収録ポケモン全体の推奨技を合法技と照合しています。':'通信できなかったため、監査済み主要技＋内蔵スナップショットです。'}</p><p><strong>照合数:</strong> ${DATA_INFO.liveMovesetCount||0}体 / 順位一致 ${DATA_INFO.liveRankedCount||0}体</p><p><strong>相手AI:</strong> 上位${opponentCandidatePool().length}体から候補を作成し、基準${metaBenchmarkPool().length}体への技相性、耐性、役割、弱点集中を評価。上位構築は標準9シールド対面で再検証し、現在の6対6は45実戦条件で比較します。</p><p><strong>倍率:</strong> 弱点×1.6、二重弱点×2.56、耐性×0.625、二重耐性・無効相当×0.391、重複時×0.244を使用します。</p><p><strong>ギルガルド:</strong> 登場時はシールド。シールド中の通常技は1ダメージ・E+6固定。ゲージ技直前にブレードへ変化し、シールド使用後または交代時にシールドへ戻ります。攻撃・防御・CP・CMP・ドット絵も現在フォルムへ連動します。</p><p><strong>数値データ元:</strong> ${escapeHtml(DATA_INFO.source)}</p><p><strong>収録:</strong> 通常・フォルム ${d.baseForms||0}、シャドウ ${d.shadowForms||0}</p>`;
+  document.getElementById("dataDiagnostics").innerHTML=`<p><strong>技構成:</strong> ${DATA_INFO.liveMeta?'起動時に現行PvPokeランキングJSONを取得し、収録ポケモン全体の推奨技を合法技と照合しています。':'通信できなかったため、監査済み主要技＋内蔵スナップショットです。'}</p><p><strong>照合数:</strong> ${DATA_INFO.liveMovesetCount||0}体 / 順位一致 ${DATA_INFO.liveRankedCount||0}体</p><p><strong>相手AI:</strong> 上位${opponentCandidatePool().length}体から候補を作成し、基準${metaBenchmarkPool().length}体への技相性、耐性、役割、弱点集中を評価。上位構築は標準9シールド対面で再検証し、現在の6対6は45実戦条件で比較します。</p><p><strong>倍率:</strong> 弱点×1.6、二重弱点×2.56、耐性×0.625、二重耐性・無効相当×0.391、重複時×0.244を使用します。</p><p><strong>対戦公平性監査:</strong> AI側・あなた側で共通のダメージ式を使用。321体・合法技2,416組合せの左右入替テストで差異0件。同一個体で差が出る場合は、能力変化・シャドウ・個体値／実数値の違いをログに表示します。</p><p><strong>ギルガルド:</strong> 登場時はシールド。シールド中の通常技は1ダメージ・E+6固定。ゲージ技直前にブレードへ変化し、シールド使用後または交代時にシールドへ戻ります。攻撃・防御・CP・CMP・ドット絵も現在フォルムへ連動します。</p><p><strong>数値データ元:</strong> ${escapeHtml(DATA_INFO.source)}</p><p><strong>収録:</strong> 通常・フォルム ${d.baseForms||0}、シャドウ ${d.shadowForms||0}</p>`;
 }
-function renderAll(){renderRosters();renderSelection();renderBattleLineups();renderMatch();renderDataLibrary(document.getElementById("dataSearch")?.value||"");updateTimer();updateRunBattleButton();if(state.lastRecommendations?.version===13&&state.lastRecommendations?.results?.length)renderRecommendations(state.lastRecommendations.results,null);else state.lastRecommendations=null}
+function renderAll(){renderRosters();renderSelection();renderBattleLineups();renderMatch();renderDataLibrary(document.getElementById("dataSearch")?.value||"");updateTimer();updateRunBattleButton();if(state.lastRecommendations?.version===13.1&&state.lastRecommendations?.results?.length)renderRecommendations(state.lastRecommendations.results,null);else state.lastRecommendations=null}
 
 async function bootstrap(){
   hydrateEmbeddedData();applyFallbackMovesets();wireEvents();repairStateRosters();renderAll();
