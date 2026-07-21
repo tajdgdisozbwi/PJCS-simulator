@@ -892,10 +892,31 @@ function opponentLineLikelihoodScore(line){
 }
 function opponentLineDistribution(lines=lineupPermutations()){
   const scored=uniqueLines(lines.map(line=>orderOpponentLine(line))).map(line=>opponentLineLikelihoodScore(line)).sort((a,b)=>b.score-a.score);
-  const maxScore=scored[0]?.score||0,temperature=.095;
-  const raw=scored.map(row=>Math.exp((row.score-maxScore)/temperature)+.015);
-  const total=raw.reduce((sum,value)=>sum+value,0)||1;
-  return scored.map((row,index)=>({...row,probability:raw[index]/total}));
+  if(!scored.length)return [];
+
+  // 大会読みモデル：合理的な上位選出へ大きく確率を寄せつつ、読み外しの余地も残す。
+  // 93%を「戦略候補帯」、7%を全60通りへの探索確率として配分する。
+  const strategicMass=.93,explorationMass=1-strategicMass;
+  const maxScore=scored[0].score,minScore=scored.at(-1)?.score??maxScore,spread=Math.max(0,maxScore-minScore);
+  const strategicGap=clamp(spread*.42,.035,.080);
+  const eligibleCount=scored.filter(row=>row.score>=maxScore-strategicGap).length;
+  const strategicCount=clamp(eligibleCount,6,14);
+  const pool=scored.slice(0,strategicCount);
+  const temperature=clamp(spread/9,.012,.026);
+  const strategicRaw=pool.map((row,index)=>{
+    const deadSlotFactor=row.deadSlots===0?1:row.deadSlots===1?.32:.09;
+    const coverageFactor=.78+.22*row.covered;
+    const rankFocus=Math.exp(-index/10);
+    return Math.exp((row.score-maxScore)/temperature)*deadSlotFactor*coverageFactor*rankFocus;
+  });
+  const strategicTotal=strategicRaw.reduce((sum,value)=>sum+value,0)||1;
+  const uniformShare=explorationMass/scored.length;
+  const result=scored.map((row,index)=>{
+    const strategicShare=index<strategicCount?strategicMass*(strategicRaw[index]/strategicTotal):0;
+    return {...row,probability:strategicShare+uniformShare,strategicShare,explorationShare:uniformShare};
+  });
+  result.meta={model:'tournament-focus',strategicMass,explorationMass,strategicCount,strategicGap,temperature,spread,top1Share:result[0]?.probability||0,top3Share:result.slice(0,3).reduce((sum,row)=>sum+row.probability,0),top10Share:result.slice(0,10).reduce((sum,row)=>sum+row.probability,0)};
+  return result;
 }
 function normalizeOpponentEntries(opponentLines){
   if(!opponentLines?.length)return opponentLineDistribution();
@@ -997,7 +1018,7 @@ function opponentSelectionSignature(){
   return `${sideSig("player")}::${sideSig("opponent")}`;
 }
 function opponentSelectionIsFresh(){
-  return Boolean(state.opponentSelectionMeta?.version===12&&state.opponentSelectionMeta?.signature===opponentSelectionSignature()&&state.opponentPicks.length===3);
+  return Boolean(state.opponentSelectionMeta?.version===13&&state.opponentSelectionMeta?.signature===opponentSelectionSignature()&&state.opponentPicks.length===3);
 }
 function opponentDuel(opponentIndex,playerIndex){
   const key=`${playerIndex}:${opponentIndex}:shield9`;
@@ -1139,7 +1160,7 @@ function computeOpponentSelection(){
     const estimate=simulateOpponentLineEstimate(row.line,playerLines,seed+(index+1)*30001,style,2);
     return {line:row.line,probability:row.probability,selectionRank:distribution.indexOf(row)+1,winPct:estimate.winPct,wins:estimate.wins,losses:estimate.losses};
   });
-  return {version:12,signature:opponentSelectionSignature(),createdAt:Date.now(),line:draw.entry.line,selectionRank:draw.rank,selectionProbability:draw.entry.probability,uniformProbability:1/Math.max(1,distribution.length),top10Share:distribution.slice(0,10).reduce((sum,row)=>sum+row.probability,0),winPct:chosenEstimate.winPct,wins:chosenEstimate.wins,losses:chosenEstimate.losses,total:chosenEstimate.total,playerLineCount:chosenEstimate.playerLineCount,repeats:chosenEstimate.repeats,avgAlive:chosenEstimate.avgAlive,analysis:opponentSelectionAnalysis(draw.entry.line),alternatives};
+  return {version:13,signature:opponentSelectionSignature(),createdAt:Date.now(),line:draw.entry.line,selectionRank:draw.rank,selectionProbability:draw.entry.probability,uniformProbability:1/Math.max(1,distribution.length),strategicCount:distribution.meta?.strategicCount||0,strategicMass:distribution.meta?.strategicMass||0,explorationMass:distribution.meta?.explorationMass||0,top1Share:distribution.meta?.top1Share||distribution[0]?.probability||0,top3Share:distribution.meta?.top3Share||distribution.slice(0,3).reduce((sum,row)=>sum+row.probability,0),top10Share:distribution.meta?.top10Share||distribution.slice(0,10).reduce((sum,row)=>sum+row.probability,0),winPct:chosenEstimate.winPct,wins:chosenEstimate.wins,losses:chosenEstimate.losses,total:chosenEstimate.total,playerLineCount:chosenEstimate.playerLineCount,repeats:chosenEstimate.repeats,avgAlive:chosenEstimate.avgAlive,analysis:opponentSelectionAnalysis(draw.entry.line),alternatives};
 }
 function ensureOpponentSelection(force=false,onReady=null){
   if(!force&&opponentSelectionIsFresh()){if(typeof onReady==="function")onReady();return}
@@ -1180,7 +1201,7 @@ function renderOpponentAiPanel(){
   const meta=state.opponentSelectionMeta;
   if(!state.opponentRevealed){
     status.textContent="選出済み・非公開";summary.textContent="AI選出済み（非公開）";
-    content.innerHTML=`<div class="ai-locked"><div class="ai-lock-icon">●</div><strong>相手AIは3体を確定済みです</strong><p>あなたの選出確定後に、3体と選出理由を公開します。現在選んでいる3体はAIへ渡していません。</p><small>選出方法：公開6体への刺さり方から60通りへ確率を付け、その分布から1回抽選。確定後に対戦評価</small></div>`;return;
+    content.innerHTML=`<div class="ai-locked"><div class="ai-lock-icon">●</div><strong>相手AIは3体を確定済みです</strong><p>あなたの選出確定後に、3体と選出理由を公開します。現在選んでいる3体はAIへ渡していません。</p><small>選出方法：公開6体への刺さり方から本命候補へ93%を集中し、残り7%を奇襲・読み外しとして残した分布から1回抽選。確定後に対戦評価</small></div>`;return;
   }
   status.textContent="選出公開";summary.textContent=selectionNames(state.opponentRoster,state.opponentPicks);
   content.innerHTML=opponentAnalysisHtml(meta,false);
@@ -1270,7 +1291,7 @@ function analyzeSelections(){
     const validated=candidates.map((line,index)=>({line,...simulateLineEstimate(line,opponentLines,seed+500000+index*20000,style,3),analysis:recommendationAnalysis(line)})).sort((a,b)=>b.winPct-a.winPct||b.avgAlive-a.avgAlive);
     const current=state.playerPicks.length===3?validated.find(x=>x.line.join(",")===state.playerPicks.join(","))?.winPct??estimateCurrentAcrossUnknown(seed,style):null;
     const top=validated.slice(0,3);
-    state.lastRecommendations={createdAt:Date.now(),version:11.2,results:top};saveState();renderRecommendations(top,current);
+    state.lastRecommendations={createdAt:Date.now(),version:11.3,results:top};saveState();renderRecommendations(top,current);
     button.disabled=false;button.textContent="✨ 勝てる選出を探す";
   },50);
 }
@@ -1352,7 +1373,7 @@ function resetAll(){if(!confirm("あなたの登録・個体値・技・選出�
 function switchTab(name){document.querySelectorAll(".tab").forEach(button=>button.classList.toggle("is-active",button.dataset.tab===name));document.querySelectorAll(".panel").forEach(panel=>panel.classList.toggle("is-active",panel.id===name));if(name==="selection")renderSelection();if(name==="battle")renderBattleLineups();if(name==="match")renderMatch();if(name==="data")renderDataLibrary(document.getElementById("dataSearch")?.value||"");window.scrollTo({top:0,behavior:"smooth"})}
 function startTimer(){clearInterval(timerId);timerValue=90;updateTimer();timerId=setInterval(()=>{timerValue--;updateTimer();if(timerValue<=0){clearInterval(timerId);timerId=null;document.getElementById("selectionMessage").textContent="選出時間が終了しました。"}},1000)}
 function updateTimer(){const el=document.getElementById("timer");el.textContent=timerValue;el.closest(".timer-box").classList.toggle("is-low",timerValue<=15)}
-function renderAll(){renderRosters();renderSelection();renderBattleLineups();renderMatch();renderDataLibrary(document.getElementById("dataSearch")?.value||"");updateTimer();updateRunBattleButton();if(state.lastRecommendations?.version===11.2&&state.lastRecommendations?.results?.length)renderRecommendations(state.lastRecommendations.results,null);else state.lastRecommendations=null}
+function renderAll(){renderRosters();renderSelection();renderBattleLineups();renderMatch();renderDataLibrary(document.getElementById("dataSearch")?.value||"");updateTimer();updateRunBattleButton();if(state.lastRecommendations?.version===11.3&&state.lastRecommendations?.results?.length)renderRecommendations(state.lastRecommendations.results,null);else state.lastRecommendations=null}
 
 function applyRecommendation(line){
   const parsed=String(line||"").split(",").map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<6);
@@ -1681,7 +1702,7 @@ function answerCard(playerMon,aiMon,duel,perspective="opponent"){
 function opponentAnalysisHtml(meta,compact=false){
   const a=meta.analysis;
   const lineup=`<div class="ai-lineup visual-lineup sprite-only-lineup">${meta.line.map((index,i)=>`<div class="ai-lineup-mon"><span class="role-badge">${["先発","引き先","締め"][i]}</span>${spriteToken(effectivePokemon("opponent",index),"pick")}</div>`).join("")}</div>`;
-  const summary=`<div class="visual-summary"><div><strong>${meta.winPct.toFixed(1)}%</strong><span>抽選後の対戦評価</span></div><div><strong>${meta.selectionRank||"—"}位</strong><span>予測分布内</span></div><div><strong>${((meta.selectionProbability||0)*100).toFixed(1)}%</strong><span>この選出の抽選確率</span></div></div><p class="selection-draw-note">均等なら約${((meta.uniformProbability||1/60)*100).toFixed(1)}%。3体選出画面と同じ分布から抽選されています。</p>`;
+  const summary=`<div class="visual-summary"><div><strong>${meta.winPct.toFixed(1)}%</strong><span>抽選後の対戦評価</span></div><div><strong>${meta.selectionRank||"—"}位</strong><span>予測分布内</span></div><div><strong>${((meta.selectionProbability||0)*100).toFixed(1)}%</strong><span>この選出の抽選確率</span></div></div><p class="selection-draw-note">大会読みモードでは本命${meta.strategicCount||'—'}通りへ${((meta.strategicMass||0)*100).toFixed(0)}%を集中。上位3選出の合計は${((meta.top3Share||0)*100).toFixed(0)}%です。残り${((meta.explorationMass||0)*100).toFixed(0)}%は奇襲・読み外しとして残します。</p>`;
   const roles=a.members.map(member=>{
     const mon=effectivePokemon("opponent",member.opponentIndex);
     const targets=member.strong.slice(0,2).map(target=>matchupVisual(mon,effectivePokemon("player",target.playerIndex),target.duel,target.reasons,"opponent")).join('');
@@ -1808,7 +1829,7 @@ function canonicalSelectionLineKey(line){
   return `${Number(line[0])}|${backs[0]}|${backs[1]}`;
 }
 function computeSelectionScore(line){
-  const key=`selection111|${buildSignatureForSide("player")}|${buildSignatureForSide("opponent")}|${line.join(',')}`;if(SELECTION_SCORE_CACHE.has(key))return SELECTION_SCORE_CACHE.get(key);
+  const key=`selection113|${buildSignatureForSide("player")}|${buildSignatureForSide("opponent")}|${line.join(',')}`;if(SELECTION_SCORE_CACHE.has(key))return SELECTION_SCORE_CACHE.get(key);
   const opponentLines=opponentLineDistribution(),allLines=lineupPermutations(),ranked=allLines.map(candidate=>({line:candidate,value:lineupScreenScore(candidate,opponentLines)})).sort((a,b)=>b.value-a.value);
   const selectedValue=lineupScreenScore(line,opponentLines),epsilon=1e-9;
   const rank=clamp(1+ranked.filter(row=>row.value>selectedValue+epsilon).length,1,Math.max(1,ranked.length));
@@ -1823,14 +1844,19 @@ function computeSelectionScore(line){
   const selectedMons=line.map(index=>effectivePokemon("player",index)),weakness=weaknessBalance(selectedMons),supportPoints=7*redundancy+3*(weakness.coverRate*.65+weakness.concentration*.35);
   const total=Math.round(clamp(tacticalPoints+coveragePoints+leadPoints+rolePoints+supportPoints,0,100)),heavy=rows.filter(row=>row.answers.length===0),narrow=rows.filter(row=>row.answers.length===1);
   const likelyOpponentLines=opponentLines.slice(0,3).map(row=>({line:row.line,probability:row.probability,score:row.score,coverage:row.covered,deadSlots:row.deadSlots}));
-  const top10Share=opponentLines.slice(0,10).reduce((sum,row)=>sum+row.probability,0);
-  const result={total,rank,tieCount,selectionCount:ranked.length,tacticalPoints,coveragePoints,leadPoints,rolePoints,supportPoints,strongRows,avgBestWins,leadAvg,leadHard,safe,closer,redundancy,weakness,rows,heavy,narrow,line,likelyOpponentLines,top10Share};SELECTION_SCORE_CACHE.set(key,result);return result;
+  const top1Share=opponentLines.meta?.top1Share||opponentLines[0]?.probability||0;
+  const top3Share=opponentLines.meta?.top3Share||opponentLines.slice(0,3).reduce((sum,row)=>sum+row.probability,0);
+  const top10Share=opponentLines.meta?.top10Share||opponentLines.slice(0,10).reduce((sum,row)=>sum+row.probability,0);
+  const strategicCount=opponentLines.meta?.strategicCount||0;
+  const strategicMass=opponentLines.meta?.strategicMass||0;
+  const explorationMass=opponentLines.meta?.explorationMass||0;
+  const result={total,rank,tieCount,selectionCount:ranked.length,tacticalPoints,coveragePoints,leadPoints,rolePoints,supportPoints,strongRows,avgBestWins,leadAvg,leadHard,safe,closer,redundancy,weakness,rows,heavy,narrow,line,likelyOpponentLines,top1Share,top3Share,top10Share,strategicCount,strategicMass,explorationMass};SELECTION_SCORE_CACHE.set(key,result);return result;
 }
 function selectionScoreHtml(result){
   const lead=effectivePokemon("player",result.line[0]);
   const heavy=result.heavy.length?result.heavy.map(row=>spriteToken(effectivePokemon("opponent",row.opponentIndex),"option")).join(''):'<span class="good-note">相手6体すべてに回答あり</span>';
   const narrow=result.narrow.length?result.narrow.map(row=>{const answer=row.answers[0];return `<span class="single-answer-chip explicit-answer"><span>相手の</span>${spriteToken(effectivePokemon("opponent",row.opponentIndex),"inline")}<span>に明確に勝てるのは、あなたの</span>${spriteToken(effectivePokemon("player",answer.playerIndex),"inline")}<strong>${answer.duel.wins}/9</strong></span>`}).join(''):'<span class="good-note">回答の1体依存は小さい</span>';
-  const likely=`<section class="opponent-prediction"><div class="prediction-title"><h4>相手が出してきそうな選出</h4><small>あなたの選択中3体は見ず、公開6体だけで推定</small></div>${result.likelyOpponentLines.map((row,index)=>`<div class="predicted-line"><span>#${index+1}</span><div>${row.line.map((opponentIndex,i)=>`<span class="predicted-mon"><small>${i===0?'先発':'控え'}</small>${spriteToken(effectivePokemon('opponent',opponentIndex),'inline')}</span>`).join('')}</div><strong>${(row.probability*100).toFixed(1)}%</strong></div>`).join('')}<p>60通りを均等に扱う場合は1選出あたり約1.7%。上位10選出で推定確率の${(result.top10Share*100).toFixed(0)}%です。相手AIの実戦選出も、この同じ確率分布から1回抽選します。</p></section>`;
+  const likely=`<section class="opponent-prediction"><div class="prediction-title"><h4>相手が出してきそうな選出</h4><small>大会読みモード：公開6体だけで推定</small></div>${result.likelyOpponentLines.map((row,index)=>`<div class="predicted-line"><span>#${index+1}</span><div>${row.line.map((opponentIndex,i)=>`<span class="predicted-mon"><small>${i===0?'先発':'控え'}</small>${spriteToken(effectivePokemon('opponent',opponentIndex),'inline')}</span>`).join('')}</div><strong>${(row.probability*100).toFixed(1)}%</strong></div>`).join('')}<div class="prediction-concentration"><span><b>本命候補</b>${result.strategicCount}通りに${(result.strategicMass*100).toFixed(0)}%</span><span><b>上位3選出</b>${(result.top3Share*100).toFixed(0)}%</span><span><b>上位10選出</b>${(result.top10Share*100).toFixed(0)}%</span></div><p>残り${(result.explorationMass*100).toFixed(0)}%だけを、奇襲・読み外しとして全60通りへ均等に残します。相手AIの実戦選出も、この同じ分布から抽選します。</p></section>`;
   return `<div class="score-card-head">${scoreRing(result.total,"3体選出評価")}<div><p class="step">PICK SCORE</p><h3>この3体選出の評価</h3><p>相手の公開6体だけを使い、相手の実際の3体を覗かず採点しています。</p></div></div><div class="score-components selection-score-components">${componentRow('選出順位による得点',result.tacticalPoints,30,`順位は ${result.rank}位${result.tieCount>1?`タイ（同点${result.tieCount}通り）`:''} / ${result.selectionCount}通り。1位ほど30点に近づき、最下位は0点です。控え2体の並び順は区別しません。`)}${componentRow('相手6体への回答力',result.coveragePoints,25,`明確な回答 ${result.strongRows.length}/6体。各相手への最善対面は平均 ${result.avgBestWins.toFixed(1)}/9勝。`)}${componentRow('先発の安定性',result.leadPoints,15,`先発の平均 ${result.leadAvg.toFixed(1)}/9勝。明確に不利な初手は${result.leadHard}体。`)}${componentRow('引き先・締めの成立',result.rolePoints,15,`引き先指数 ${Math.round(result.safe.safeNorm*100)}、締め指数 ${Math.round(result.closer.closerNorm*100)}。技回転と0盾性能を含みます。`)}${componentRow('回答の厚み・3体補完',result.supportPoints,10,`2体以上で回答できる厚み ${(result.redundancy*100).toFixed(0)}%。3体内の弱点補完率 ${(result.weakness.coverRate*100).toFixed(0)}%。`)}</div>${likely}<div class="score-explain-grid"><section><h4>役割配置</h4><div class="score-role-lane"><span>先発</span>${spriteToken(lead,"option")}<em>平均${result.leadAvg.toFixed(1)}/9</em></div><div class="score-role-lane"><span>引き先</span>${spriteToken(result.safe.mon,"option")}<em>互角以上${result.safe.favorable.length+result.safe.neutral.length}/6</em></div><div class="score-role-lane"><span>締め</span>${spriteToken(result.closer.mon,"option")}<em>0盾勝利${result.closer.zeroWins}/6</em></div></section><section><h4>選出リスク</h4><div class="score-hole-row"><span>3体全員で重い</span><div>${heavy}</div></div><div class="score-hole-row"><span>回答が1体だけ</span><div>${narrow}</div></div></section></div><details class="score-formula"><summary>100点の配点を見る</summary><p>選出順位による得点30点、相手6体への回答25点、先発15点、引き先・締め15点、回答の厚みと3体補完10点です。相手60選出は、先発の通り22%、6体への回答範囲38%、回答の厚み15%、採用3体それぞれの刺さり15%、引き先・締め適性10%で選出確率を推定します。</p></details>`;
 }
 function renderSelectionScorePanel(){
@@ -1935,7 +1961,7 @@ function renderDataLibrary(query=""){
   document.getElementById("dataList").replaceChildren(...ids.map(id=>{const p=POKEMON[id],b=p.rank1,row=document.createElement("article");row.className="data-row";row.innerHTML=`<span class="data-rank">${p.rank?`#${p.rank}<small>性能順位</small>`:`—<small>未照合</small>`}</span>${pokemonAvatar(p,"data")}<div class="data-main"><strong>${escapeHtml(p.name)} ${p.movesetSource?'<span class="meta-inline">技照合済み</span>':''}</strong><small>${typeChips(p.types)} ${escapeHtml(moveLabel(p))}</small></div><div class="data-build">CP ${b.cp}<br>Lv ${b.level}</div>`;return row}));
   document.getElementById("dataDiagnostics").innerHTML=`<p><strong>技構成:</strong> ${DATA_INFO.liveMeta?'起動時に現行PvPokeランキングJSONを取得し、収録ポケモン全体の推奨技を合法技と照合しています。':'通信できなかったため、監査済み主要技＋内蔵スナップショットです。'}</p><p><strong>照合数:</strong> ${DATA_INFO.liveMovesetCount||0}体 / 順位一致 ${DATA_INFO.liveRankedCount||0}体</p><p><strong>相手AI:</strong> 上位${opponentCandidatePool().length}体から候補を作成し、基準${metaBenchmarkPool().length}体への技相性、耐性、役割、弱点集中を評価。上位構築は9シールド対面で再検証します。</p><p><strong>倍率:</strong> 弱点×1.6、二重弱点×2.56、耐性×0.625、二重耐性・無効相当×0.391、重複時×0.244を使用します。</p><p><strong>ギルガルド:</strong> 登場時はシールド。シールド中の通常技は1ダメージ・E+6固定。ゲージ技直前にブレードへ変化し、シールド使用後または交代時にシールドへ戻ります。攻撃・防御・CP・CMP・ドット絵も現在フォルムへ連動します。</p><p><strong>数値データ元:</strong> ${escapeHtml(DATA_INFO.source)}</p><p><strong>収録:</strong> 通常・フォルム ${d.baseForms||0}、シャドウ ${d.shadowForms||0}</p>`;
 }
-function renderAll(){renderRosters();renderSelection();renderBattleLineups();renderMatch();renderDataLibrary(document.getElementById("dataSearch")?.value||"");updateTimer();updateRunBattleButton();if(state.lastRecommendations?.version===11.2&&state.lastRecommendations?.results?.length)renderRecommendations(state.lastRecommendations.results,null);else state.lastRecommendations=null}
+function renderAll(){renderRosters();renderSelection();renderBattleLineups();renderMatch();renderDataLibrary(document.getElementById("dataSearch")?.value||"");updateTimer();updateRunBattleButton();if(state.lastRecommendations?.version===11.3&&state.lastRecommendations?.results?.length)renderRecommendations(state.lastRecommendations.results,null);else state.lastRecommendations=null}
 
 async function bootstrap(){
   hydrateEmbeddedData();applyFallbackMovesets();wireEvents();repairStateRosters();renderAll();
